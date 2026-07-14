@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useAppData } from '../data/store'
 import { addContact, deleteContact, updateContact } from '../data/actions'
 import { isContactPickerSupported, pickDeviceContacts } from '../lib/contactPicker'
+import { parseVCard } from '../lib/vcard'
 import type { Contact } from '../types'
 import PageHeader from '../components/PageHeader'
 
@@ -10,28 +11,41 @@ export default function Contacts() {
   const [adding, setAdding] = useState(false)
   const [importing, setImporting] = useState(false)
   const [importMessage, setImportMessage] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const others = data.contacts.filter((c) => !c.isMe)
 
-  async function handleImport() {
+  function addImported(picked: Array<{ name: string; phone: string }>) {
+    const existingPhones = new Set(data.contacts.map((c) => c.phone))
+    let added = 0
+    for (const c of picked) {
+      if (c.name && c.phone && !existingPhones.has(c.phone)) {
+        addContact(c.name, c.phone)
+        existingPhones.add(c.phone)
+        added++
+      }
+    }
+    setImportMessage(added === 0 ? 'No se agregó ningún contacto nuevo.' : `Se importaron ${added} contacto${added === 1 ? '' : 's'}.`)
+  }
+
+  async function handlePickerImport() {
     setImporting(true)
     setImportMessage('')
     try {
-      const picked = await pickDeviceContacts()
-      const existingPhones = new Set(data.contacts.map((c) => c.phone))
-      let added = 0
-      for (const c of picked) {
-        if (!existingPhones.has(c.phone)) {
-          addContact(c.name, c.phone)
-          existingPhones.add(c.phone)
-          added++
-        }
-      }
-      setImportMessage(added === 0 ? 'No se agregó ningún contacto nuevo.' : `Se importaron ${added} contacto${added === 1 ? '' : 's'}.`)
+      addImported(await pickDeviceContacts())
     } catch {
       // Cancelled the picker or permission denied — nothing to do.
     } finally {
       setImporting(false)
     }
+  }
+
+  async function handleFileImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    e.target.value = ''
+    if (files.length === 0) return
+    setImportMessage('')
+    const texts = await Promise.all(files.map((f) => f.text()))
+    addImported(texts.flatMap(parseVCard))
   }
 
   return (
@@ -41,7 +55,7 @@ export default function Contacts() {
         trailing={
           <div className="flex gap-2">
             {isContactPickerSupported() && (
-              <button onClick={handleImport} disabled={importing} className="btn btn-ghost">
+              <button onClick={handlePickerImport} disabled={importing} className="btn btn-ghost">
                 {importing ? 'Importando…' : 'Importar'}
               </button>
             )}
@@ -53,6 +67,27 @@ export default function Contacts() {
       />
 
       <div className="flex flex-col gap-3 p-4">
+        <div className="card flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-ink">Importar desde un archivo (.vcf)</p>
+              <p className="hint">Exportá tus contactos como vCard y subí el archivo acá.</p>
+            </div>
+            <button onClick={() => fileInputRef.current?.click()} className="btn btn-ghost shrink-0">
+              Elegir archivo
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".vcf,text/vcard,text/x-vcard"
+              multiple
+              className="hidden"
+              onChange={handleFileImport}
+            />
+          </div>
+          <ImportHelp />
+        </div>
+
         {importMessage && <p className="hint">{importMessage}</p>}
 
         {adding && <ContactForm onDone={() => setAdding(false)} />}
@@ -67,6 +102,92 @@ export default function Contacts() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function ImportHelp() {
+  const [open, setOpen] = useState(false)
+  const [platform, setPlatform] = useState<'iphone' | 'android'>('iphone')
+
+  return (
+    <div>
+      <button onClick={() => setOpen((o) => !o)} className="text-brand text-sm font-semibold">
+        {open ? 'Ocultar instrucciones' : '¿Cómo hago esto?'}
+      </button>
+
+      {open && (
+        <div className="mt-3 flex flex-col gap-3">
+          <div className="pill-group">
+            <button onClick={() => setPlatform('iphone')} className={`pill-btn ${platform === 'iphone' ? 'active' : ''}`}>
+              iPhone
+            </button>
+            <button onClick={() => setPlatform('android')} className={`pill-btn ${platform === 'android' ? 'active' : ''}`}>
+              Android
+            </button>
+          </div>
+
+          {platform === 'iphone' ? (
+            <div className="flex flex-col gap-3">
+              <div>
+                <p className="section-label mb-1">Para importar muchos de una vez (lo más simple)</p>
+                <ol className="hint list-decimal space-y-1 pl-4">
+                  <li>
+                    Desde Safari (en el celu o la compu), entrá a{' '}
+                    <span style={{ fontFamily: 'monospace' }}>icloud.com/contacts</span> e iniciá sesión con tu Apple ID.
+                  </li>
+                  <li>Seleccioná los contactos que querés (⌘/Ctrl+click para elegir varios, o Ctrl+A para todos).</li>
+                  <li>
+                    Tocá el ícono ⚙️ (abajo a la izquierda) → <strong>"Exportar vCard"</strong>.
+                  </li>
+                  <li>Se descarga un archivo .vcf con todos los contactos elegidos.</li>
+                  <li>Volvé acá y tocá "Elegir archivo" para subirlo.</li>
+                </ol>
+              </div>
+              <div>
+                <p className="section-label mb-1">Para uno o dos contactos puntuales</p>
+                <ol className="hint list-decimal space-y-1 pl-4">
+                  <li>Abrí la app Contactos.</li>
+                  <li>Tocá "Seleccionar" (arriba a la derecha) y elegí los contactos.</li>
+                  <li>
+                    Tocá compartir → <strong>"Guardar en Archivos"</strong>.
+                  </li>
+                  <li>Volvé acá y tocá "Elegir archivo" para buscarlo.</li>
+                </ol>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <div>
+                <p className="section-label mb-1">Para importar muchos de una vez (lo más simple)</p>
+                <ol className="hint list-decimal space-y-1 pl-4">
+                  <li>
+                    Desde cualquier navegador, entrá a{' '}
+                    <span style={{ fontFamily: 'monospace' }}>contacts.google.com</span> con tu cuenta de Google.
+                  </li>
+                  <li>Seleccioná los contactos que querés (o marcá todos).</li>
+                  <li>
+                    Tocá <strong>"Exportar"</strong> y elegí el formato vCard (.vcf).
+                  </li>
+                  <li>Se descarga el archivo.</li>
+                  <li>Volvé acá y tocá "Elegir archivo" para subirlo.</li>
+                </ol>
+              </div>
+              <div>
+                <p className="section-label mb-1">Directo desde el teléfono</p>
+                <ol className="hint list-decimal space-y-1 pl-4">
+                  <li>Abrí la app Contactos.</li>
+                  <li>
+                    Menú (≡) → <strong>Configuración → Exportar</strong>.
+                  </li>
+                  <li>Elegí "Exportar a archivo .vcf" y confirmá (suele guardarse en Descargas).</li>
+                  <li>Volvé acá y tocá "Elegir archivo" para buscarlo.</li>
+                </ol>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
