@@ -37,31 +37,22 @@ export default function InvitationRow({
   const locked = invitation.status === 'invited' && isEventFull(event)
 
   return (
-    <div className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2 dark:border-gray-800">
+    <div className="list-row justify-between">
       <div>
-        <p className="text-sm text-gray-800 dark:text-gray-200">{contact.name}</p>
-        <p className="text-xs text-gray-500 dark:text-gray-400">{STATUS_LABEL[invitation.status]}</p>
+        <p className="text-sm text-ink">{contact.name}</p>
+        <p className="hint">{STATUS_LABEL[invitation.status]}</p>
       </div>
 
-      <div className="flex flex-wrap justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-3">
         {invitation.status === 'invited' && !locked && (
           <>
-            <button
-              onClick={() => acceptInvitation(invitation.id)}
-              className="text-xs font-medium text-emerald-600 dark:text-emerald-400"
-            >
+            <button onClick={() => acceptInvitation(invitation.id)} className="text-brand text-xs font-semibold">
               Aceptó
             </button>
-            <button
-              onClick={() => declineInvitation(invitation.id)}
-              className="text-xs font-medium text-red-600 dark:text-red-400"
-            >
+            <button onClick={() => declineInvitation(invitation.id)} className="text-danger text-xs font-semibold">
               Rechazó
             </button>
-            <button
-              onClick={() => expireInvitation(invitation.id)}
-              className="text-xs font-medium text-gray-500 dark:text-gray-400"
-            >
+            <button onClick={() => expireInvitation(invitation.id)} className="text-muted text-xs font-semibold">
               Expiró
             </button>
           </>
@@ -74,17 +65,15 @@ export default function InvitationRow({
               window.open(buildWaMeLink(contact.phone, message), '_blank')
               markCupoCubierto(invitation.id)
             }}
-            className="text-xs font-medium text-amber-700 dark:text-amber-400"
+            className="text-xs font-semibold"
+            style={{ color: '#92400e' }}
           >
             Cupo cubierto
           </button>
         )}
 
         {!readOnlyIfClosed && (invitation.status === 'declined' || invitation.status === 'expired') && (
-          <button
-            onClick={() => reopenInvitation(invitation.id, 'invited')}
-            className="text-xs font-medium text-emerald-600 dark:text-emerald-400"
-          >
+          <button onClick={() => reopenInvitation(invitation.id, 'invited')} className="text-brand text-xs font-semibold">
             Reabrir
           </button>
         )}
@@ -94,7 +83,7 @@ export default function InvitationRow({
             onClick={() => {
               if (confirm('¿Eliminar esta invitación?')) deleteInvitation(invitation.id)
             }}
-            className="text-xs font-medium text-gray-400 dark:text-gray-500"
+            className="text-muted text-xs font-semibold"
           >
             Borrar
           </button>

@@ -14,29 +14,15 @@ export default function Onboarding() {
   return (
     <div className="mx-auto flex h-full max-w-md flex-col items-center justify-center gap-6 px-6">
       <div className="text-center">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">FaltaUno!!</h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Antes de arrancar, decinos quién sos vos.
-        </p>
+        <div className="logo">
+          Falta<span className="accent">Uno!!</span>
+        </div>
+        <p className="hint mt-1">Antes de arrancar, decinos quién sos vos.</p>
       </div>
       <form onSubmit={handleSubmit} className="flex w-full flex-col gap-3">
-        <input
-          className="rounded-lg border border-gray-300 px-4 py-3 text-base dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-          placeholder="Tu nombre"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          autoFocus
-        />
-        <input
-          className="rounded-lg border border-gray-300 px-4 py-3 text-base dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-          placeholder="Tu teléfono (+549...)"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-        />
-        <button
-          type="submit"
-          className="mt-2 rounded-lg bg-emerald-600 py-3 text-base font-medium text-white active:bg-emerald-700"
-        >
+        <input placeholder="Tu nombre" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        <input placeholder="Tu teléfono (+549...)" value={phone} onChange={(e) => setPhone(e.target.value)} />
+        <button type="submit" className="btn btn-primary mt-2 w-full py-3 text-base">
           Empezar
         </button>
       </form>

@@ -24,6 +24,7 @@ import { getSportConfig } from '../data/sports'
 import type { Round } from '../types'
 import InvitationRow from '../components/InvitationRow'
 import WhatsAppQueue from '../components/WhatsAppQueue'
+import PageHeader from '../components/PageHeader'
 
 export default function EventDetail() {
   const { eventId } = useParams<{ eventId: string }>()
@@ -35,7 +36,7 @@ export default function EventDetail() {
   if (!event) {
     return (
       <div className="p-4">
-        <p className="text-sm text-gray-500">Evento no encontrado.</p>
+        <p className="text-muted text-sm">Evento no encontrado.</p>
       </div>
     )
   }
@@ -48,129 +49,113 @@ export default function EventDetail() {
   const eligible = getEligibleContactsForEvent(data, event.id, event)
 
   return (
-    <div className="flex flex-col gap-5 p-4">
-      <div className="flex items-center gap-3">
-        <button onClick={() => navigate('/')} className="text-sm text-gray-500 dark:text-gray-400">
-          ← Volver
-        </button>
-      </div>
+    <div className="flex flex-col">
+      <PageHeader
+        title={sport.name}
+        sticky
+        leading={
+          <button onClick={() => navigate('/')} className="text-muted text-sm">
+            ← Volver
+          </button>
+        }
+      />
 
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{sport.name}</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          {event.club}
-          {event.court ? ` · Cancha ${event.court}` : ''}
-        </p>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          {event.date} · {event.time}hs
-        </p>
-        {event.status !== 'upcoming' && (
-          <span className="mt-1 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-            {event.status === 'completed' ? 'Jugado' : 'Cancelado'}
-          </span>
-        )}
-      </div>
-
-      <section>
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-            Confirmados ({confirmed.length}/{sport.requiredPlayers})
-          </h2>
-          {vacancies > 0 ? (
-            <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
-              Faltan {vacancies}
+      <div className="flex flex-col gap-5 p-4">
+        <div>
+          <p className="text-muted text-sm">
+            {event.club}
+            {event.court ? ` · Cancha ${event.court}` : ''}
+          </p>
+          <p className="text-muted text-sm">
+            {event.date} · {event.time}hs
+          </p>
+          {event.status !== 'upcoming' && (
+            <span className="badge-neutral mt-1 inline-block">
+              {event.status === 'completed' ? 'Jugado' : 'Cancelado'}
             </span>
-          ) : (
-            <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">Cupo lleno</span>
           )}
         </div>
-        <div className="flex flex-col gap-1">
-          {confirmed.map((c) => (
-            <div
-              key={c.id}
-              className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2 dark:border-gray-800"
-            >
-              <span className="text-sm text-gray-800 dark:text-gray-200">
-                {c.name}
-                {c.isMe && ' (vos)'}
+
+        <section>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="card-title mb-0">
+              Confirmados ({confirmed.length}/{sport.requiredPlayers})
+            </h2>
+            {vacancies > 0 ? (
+              <span className="text-xs font-semibold" style={{ color: '#92400e' }}>
+                Faltan {vacancies}
               </span>
-              {!c.isMe && event.status === 'upcoming' && (
-                <button
-                  onClick={() => {
-                    if (confirm(`¿${c.name} se baja del partido?`)) removeConfirmedContact(event.id, c.id)
-                  }}
-                  className="text-xs font-medium text-red-600 dark:text-red-400"
-                >
-                  Se baja
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
+            ) : (
+              <span className="text-brand text-xs font-semibold">Cupo lleno</span>
+            )}
+          </div>
+          <div className="flex flex-col gap-1">
+            {confirmed.map((c) => (
+              <div key={c.id} className="list-row justify-between">
+                <span className="text-sm text-ink">
+                  {c.name}
+                  {c.isMe && ' (vos)'}
+                </span>
+                {!c.isMe && event.status === 'upcoming' && (
+                  <button
+                    onClick={() => {
+                      if (confirm(`¿${c.name} se baja del partido?`)) removeConfirmedContact(event.id, c.id)
+                    }}
+                    className="text-danger text-xs font-semibold"
+                  >
+                    Se baja
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
 
-      {event.status === 'upcoming' && (
-        <section className="flex flex-col gap-3">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Rondas de invitación</h2>
+        {event.status === 'upcoming' && (
+          <section className="flex flex-col gap-3">
+            <h2 className="card-title mb-0">Rondas de invitación</h2>
 
-          {rounds.map((round) => (
-            <RoundCard
-              key={round.id}
-              round={round}
-              onSendWhatsApp={() => setQueueRoundId(round.id)}
-            />
-          ))}
+            {rounds.map((round) => (
+              <RoundCard key={round.id} round={round} onSendWhatsApp={() => setQueueRoundId(round.id)} />
+            ))}
 
-          {activeRound ? (
-            <button
-              onClick={() => closeActiveRound(event.id)}
-              className="rounded-lg border border-gray-300 py-2 text-sm font-medium text-gray-700 dark:border-gray-700 dark:text-gray-300"
-            >
-              Pasar a la próxima ronda
+            {activeRound ? (
+              <button onClick={() => closeActiveRound(event.id)} className="btn btn-ghost">
+                Pasar a la próxima ronda
+              </button>
+            ) : (
+              vacancies > 0 && <NewRoundControls eventId={event.id} eligibleContactIds={eligible.map((c) => c.id)} />
+            )}
+          </section>
+        )}
+
+        {event.status === 'upcoming' && (
+          <section className="flex flex-col gap-2 border-t pt-4" style={{ borderColor: 'var(--color-line)' }}>
+            <button onClick={() => markEventCompleted(event.id)} className="btn btn-ghost active">
+              Marcar como jugado
             </button>
-          ) : (
-            vacancies > 0 && (
-              <NewRoundControls eventId={event.id} eligibleContactIds={eligible.map((c) => c.id)} />
-            )
-          )}
-        </section>
-      )}
+            <button
+              onClick={() => {
+                const name = prompt('Nombre del template', `${sport.name} ${event.club}`)
+                if (name) saveEventAsTemplate(event.id, name)
+              }}
+              className="btn btn-ghost"
+            >
+              Guardar como template
+            </button>
+            <button
+              onClick={() => {
+                if (confirm('¿Cancelar este evento?')) cancelEvent(event.id)
+              }}
+              className="btn-danger"
+            >
+              Cancelar evento
+            </button>
+          </section>
+        )}
 
-      {event.status === 'upcoming' && (
-        <section className="flex flex-col gap-2 border-t border-gray-200 pt-4 dark:border-gray-800">
-          <button
-            onClick={() => markEventCompleted(event.id)}
-            className="rounded-lg bg-gray-900 py-2.5 text-sm font-medium text-white dark:bg-gray-100 dark:text-gray-900"
-          >
-            Marcar como jugado
-          </button>
-          <button
-            onClick={() => {
-              const name = prompt('Nombre del template', `${sport.name} ${event.club}`)
-              if (name) saveEventAsTemplate(event.id, name)
-            }}
-            className="rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-700 dark:border-gray-700 dark:text-gray-300"
-          >
-            Guardar como template
-          </button>
-          <button
-            onClick={() => {
-              if (confirm('¿Cancelar este evento?')) cancelEvent(event.id)
-            }}
-            className="rounded-lg py-2 text-sm font-medium text-red-600 dark:text-red-400"
-          >
-            Cancelar evento
-          </button>
-        </section>
-      )}
-
-      {queueRoundId && (
-        <WhatsAppQueue
-          roundId={queueRoundId}
-          eventId={event.id}
-          onClose={() => setQueueRoundId(null)}
-        />
-      )}
+        {queueRoundId && <WhatsAppQueue roundId={queueRoundId} eventId={event.id} onClose={() => setQueueRoundId(null)} />}
+      </div>
     </div>
   )
 }
@@ -186,22 +171,19 @@ function RoundCard({ round, onSendWhatsApp }: { round: Round; onSendWhatsApp: ()
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 p-3 dark:border-gray-800">
+    <div className="card">
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-sm font-medium text-gray-800 dark:text-gray-200">Ronda {round.order}</span>
-        <span className="text-xs text-gray-500 dark:text-gray-400">{statusLabel[round.status]}</span>
+        <span className="text-sm font-semibold text-ink">Ronda {round.order}</span>
+        <span className="hint">{statusLabel[round.status]}</span>
       </div>
 
       {round.status === 'pending' && (
         <div className="flex flex-col gap-2">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="hint">
             {round.contactIds.length} contacto{round.contactIds.length === 1 ? '' : 's'} listo
             {round.contactIds.length === 1 ? '' : 's'} para invitar.
           </p>
-          <button
-            onClick={() => activateRound(round.id)}
-            className="rounded-lg bg-emerald-600 py-2 text-sm font-medium text-white active:bg-emerald-700"
-          >
+          <button onClick={() => activateRound(round.id)} className="btn btn-primary">
             Activar Ronda {round.order}
           </button>
         </div>
@@ -209,10 +191,7 @@ function RoundCard({ round, onSendWhatsApp }: { round: Round; onSendWhatsApp: ()
 
       {round.status === 'active' && (
         <div className="flex flex-col gap-2">
-          <button
-            onClick={onSendWhatsApp}
-            className="rounded-lg bg-emerald-600 py-2 text-sm font-medium text-white active:bg-emerald-700"
-          >
+          <button onClick={onSendWhatsApp} className="btn btn-primary">
             Enviar por WhatsApp
           </button>
           <div className="flex flex-col gap-1">
@@ -253,17 +232,13 @@ function NewRoundControls({
   }
 
   if (eligible.length === 0) {
-    return <p className="text-sm text-gray-400">No quedan contactos disponibles para invitar.</p>
+    return <p className="hint">No quedan contactos disponibles para invitar.</p>
   }
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex gap-2">
-        <select
-          className="flex-1 rounded-lg border border-gray-300 px-2 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-          value={quickPickId}
-          onChange={(e) => setQuickPickId(e.target.value)}
-        >
+        <select className="flex-1" value={quickPickId} onChange={(e) => setQuickPickId(e.target.value)}>
           <option value="">Invitar directamente a...</option>
           {eligible.map((c) => (
             <option key={c.id} value={c.id}>
@@ -277,25 +252,22 @@ function NewRoundControls({
             quickInvite(eventId, quickPickId)
             setQuickPickId('')
           }}
-          className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-40"
+          className="btn btn-primary"
         >
           Invitar
         </button>
       </div>
 
       {!building ? (
-        <button
-          onClick={() => setBuilding(true)}
-          className="rounded-lg border border-gray-300 py-2 text-sm font-medium text-gray-700 dark:border-gray-700 dark:text-gray-300"
-        >
+        <button onClick={() => setBuilding(true)} className="btn btn-ghost">
           Armar una ronda con varios
         </button>
       ) : (
-        <div className="flex flex-col gap-2 rounded-lg border border-gray-200 p-3 dark:border-gray-800">
+        <div className="card flex flex-col gap-2">
           {eligible.map((c) => (
-            <label key={c.id} className="flex items-center gap-2">
+            <label key={c.id} className="list-row">
               <input type="checkbox" checked={selected.includes(c.id)} onChange={() => toggle(c.id)} />
-              <span className="text-sm text-gray-800 dark:text-gray-200">{c.name}</span>
+              <span className="text-sm text-ink">{c.name}</span>
             </label>
           ))}
           <button
@@ -305,7 +277,7 @@ function NewRoundControls({
               setSelected([])
               setBuilding(false)
             }}
-            className="rounded-lg bg-emerald-600 py-2 text-sm font-medium text-white disabled:opacity-40"
+            className="btn btn-primary"
           >
             Armar ronda
           </button>

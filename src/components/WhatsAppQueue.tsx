@@ -33,39 +33,29 @@ export default function WhatsAppQueue({
 
   return (
     <div className="fixed inset-0 z-20 flex items-end justify-center bg-black/40">
-      <div className="mx-auto w-full max-w-md rounded-t-2xl bg-white p-4 dark:bg-gray-900">
+      <div className="card mx-auto w-full max-w-md rounded-b-none">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Cola de WhatsApp</h3>
-          <button onClick={onClose} className="text-sm text-gray-500 dark:text-gray-400">
+          <h3 className="card-title mb-0">Cola de WhatsApp</h3>
+          <button onClick={onClose} className="text-muted text-sm">
             Cerrar
           </button>
         </div>
 
         {!current || !contact ? (
-          <p className="py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-            No quedan invitaciones pendientes de enviar en esta ronda.
-          </p>
+          <p className="empty-state">No quedan invitaciones pendientes de enviar en esta ronda.</p>
         ) : (
           <div className="flex flex-col gap-3">
-            <p className="text-xs text-gray-400">
+            <p className="hint">
               {index + 1} de {pending.length}
             </p>
-            <p className="text-base font-medium text-gray-900 dark:text-gray-100">{contact.name}</p>
-            <p className="rounded-lg bg-gray-100 p-3 text-sm text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+            <p className="text-base font-semibold text-ink">{contact.name}</p>
+            <p className="rounded-[7px] p-3 text-sm text-ink" style={{ background: 'var(--color-bg)' }}>
               {messageText}
             </p>
-            <a
-              href={buildWaMeLink(contact.phone, messageText)}
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-lg bg-emerald-600 py-3 text-center text-sm font-medium text-white active:bg-emerald-700"
-            >
+            <a href={buildWaMeLink(contact.phone, messageText)} target="_blank" rel="noreferrer" className="btn btn-primary text-center">
               Abrir WhatsApp
             </a>
-            <button
-              onClick={() => setIndex((i) => i + 1)}
-              className="rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-700 dark:border-gray-700 dark:text-gray-300"
-            >
+            <button onClick={() => setIndex((i) => i + 1)} className="btn btn-ghost">
               Ya envié, siguiente
             </button>
           </div>
