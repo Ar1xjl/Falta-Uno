@@ -76,3 +76,16 @@ export function getHistoryEvents(data: AppData): Event[] {
 export function isAcceptLocked(event: Event): boolean {
   return isEventFull(event)
 }
+
+/** Count of upcoming events whose active round still has an invitation awaiting a response — drives the nav alert badge. */
+export function getAttentionCount(data: AppData): number {
+  const ids = new Set<string>()
+  for (const event of data.events) {
+    if (event.status !== 'upcoming') continue
+    const round = getActiveRound(data, event.id)
+    if (!round) continue
+    const pending = getInvitationsForRound(data, round.id).some((i) => i.status === 'invited')
+    if (pending) ids.add(event.id)
+  }
+  return ids.size
+}

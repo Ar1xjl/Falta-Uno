@@ -1,4 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import { useAppData } from '../data/store'
+import { getAttentionCount } from '../data/selectors'
 import Banner from './Banner'
 import LightningFooter from './LightningFooter'
 
@@ -12,6 +14,9 @@ const TABS = [
 ]
 
 export default function Layout() {
+  const data = useAppData()
+  const attentionCount = getAttentionCount(data)
+
   return (
     <div className="mx-auto flex h-full max-w-md flex-col bg-bg">
       <Banner />
@@ -21,9 +26,10 @@ export default function Layout() {
             key={tab.to}
             to={tab.to}
             end={tab.end}
-            className={({ isActive }) => `tab-item flex flex-1 flex-col items-center gap-0.5 py-2 text-[0.65rem] font-medium ${isActive ? 'active' : ''}`}
+            className={({ isActive }) => `tab-item relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[0.65rem] font-medium ${isActive ? 'active' : ''}`}
           >
             {tab.label}
+            {tab.to === '/' && attentionCount > 0 && <span className="nav-badge">{attentionCount}</span>}
           </NavLink>
         ))}
       </nav>

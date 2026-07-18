@@ -3,6 +3,7 @@ import { useAppData } from '../data/store'
 import { addContact, deleteContact, updateContact } from '../data/actions'
 import { isContactPickerSupported, pickDeviceContacts } from '../lib/contactPicker'
 import { parseVCard } from '../lib/vcard'
+import { SPORT_TAGS } from '../data/sports'
 import type { Contact } from '../types'
 import PageHeader from '../components/PageHeader'
 
@@ -202,14 +203,19 @@ function ContactForm({
   const [name, setName] = useState(contact?.name ?? '')
   const [phone, setPhone] = useState(contact?.phone ?? '')
   const [note, setNote] = useState(contact?.note ?? '')
+  const [sports, setSports] = useState<string[]>(contact?.sports ?? [])
+
+  function toggleSport(id: string) {
+    setSports((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim() || !phone.trim()) return
     if (contact) {
-      updateContact(contact.id, { name: name.trim(), phone: phone.trim(), note: note.trim() || undefined })
+      updateContact(contact.id, { name: name.trim(), phone: phone.trim(), note: note.trim() || undefined, sports })
     } else {
-      addContact(name.trim(), phone.trim(), note.trim() || undefined)
+      addContact(name.trim(), phone.trim(), note.trim() || undefined, sports)
     }
     onDone()
   }
@@ -219,6 +225,21 @@ function ContactForm({
       <input placeholder="Nombre" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
       <input placeholder="Teléfono (+549...)" value={phone} onChange={(e) => setPhone(e.target.value)} />
       <input placeholder="Nota (opcional)" value={note} onChange={(e) => setNote(e.target.value)} />
+      <div>
+        <p className="hint mb-1">Deportes que juega</p>
+        <div className="flex flex-wrap gap-2">
+          {SPORT_TAGS.map((tag) => (
+            <button
+              key={tag.id}
+              type="button"
+              onClick={() => toggleSport(tag.id)}
+              className={`tag-toggle ${sports.includes(tag.id) ? 'active' : ''}`}
+            >
+              {tag.label}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="flex gap-2">
         <button type="submit" className="btn btn-primary flex-1">
           Guardar
@@ -242,6 +263,15 @@ function ContactRow({ contact }: { contact: Contact }) {
         <p className="font-semibold text-ink">{contact.name}</p>
         <p className="text-muted text-sm">{contact.phone}</p>
         {contact.note && <p className="hint">{contact.note}</p>}
+        {contact.sports && contact.sports.length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {contact.sports.map((s) => (
+              <span key={s} className="badge-neutral">
+                {SPORT_TAGS.find((t) => t.id === s)?.label ?? s}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
       <div className="flex gap-3 text-sm">
         <button onClick={() => setEditing(true)} className="text-brand font-semibold">

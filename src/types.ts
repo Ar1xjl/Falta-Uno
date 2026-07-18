@@ -2,6 +2,7 @@ export interface SportConfig {
   id: string
   name: string
   requiredPlayers: number
+  category: string // coarse tag used to match against Contact.sports, e.g. "tenis" covers both Tenis Singles and Dobles
 }
 
 export interface Contact {
@@ -10,6 +11,7 @@ export interface Contact {
   phone: string // E.164, e.g. "+5491122334455"
   note?: string
   isMe: boolean
+  sports?: string[] // sport tag ids the contact plays, e.g. ["padel", "golf"]
 }
 
 export type EventStatus = 'upcoming' | 'completed' | 'cancelled'

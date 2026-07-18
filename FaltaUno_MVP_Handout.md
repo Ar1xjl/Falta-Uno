@@ -44,20 +44,24 @@ Estas features están documentadas en la sección 8 (Roadmap futuro) solo como c
 
 ```ts
 interface SportConfig {
-  id: string;             // "padel" | "tennis_singles" | "tennis_doubles" | "football_5" | "football_11"
+  id: string;             // "padel" | "tennis_singles" | "tennis_doubles" | "football_5" | "football_11" | "golf"
   name: string;
   requiredPlayers: number;
+  category: string;       // etiqueta gruesa para matchear con Contact.sports (ver más abajo)
 }
 
 const SPORTS: SportConfig[] = [
-  { id: "padel",           name: "Padel",            requiredPlayers: 4 },
-  { id: "tennis_singles",  name: "Tenis Singles",    requiredPlayers: 2 },
-  { id: "tennis_doubles",  name: "Tenis Dobles",     requiredPlayers: 4 },
-  { id: "football_5",      name: "Fútbol 5",         requiredPlayers: 5 },
-  { id: "football_11",     name: "Fútbol 11",        requiredPlayers: 11 },
+  { id: "padel",           name: "Padel",            requiredPlayers: 4,  category: "padel" },
+  { id: "tennis_singles",  name: "Tenis Singles",    requiredPlayers: 2,  category: "tenis" },
+  { id: "tennis_doubles",  name: "Tenis Dobles",     requiredPlayers: 4,  category: "tenis" },
+  { id: "football_5",      name: "Fútbol 5",         requiredPlayers: 5,  category: "futbol" },
+  { id: "football_11",     name: "Fútbol 11",        requiredPlayers: 11, category: "futbol" },
+  { id: "golf",            name: "Golf",             requiredPlayers: 4,  category: "golf" },
 ];
 ```
 Debe ser trivial agregar un deporte nuevo agregando una entrada a este array (no debe requerir tocar lógica de negocio).
+
+`category` existe porque los tags de Contact son más gruesos que los formatos de evento: "Tenis Singles" y "Tenis Dobles" son ambos simplemente "Tenis" para el que juega. **Revisado** (ver sección 11): la app ya no está limitada a estos 5 deportes fijos — este array puede crecer (Golf ya se agregó); agregar deportes definidos por el usuario con su propio `requiredPlayers` queda como mejora futura, probablemente en Ajustes.
 
 ---
 
@@ -71,10 +75,12 @@ interface Contact {
   phone: string;      // formato E.164, ej "+5491122334455"
   note?: string;       // texto libre opcional
   isMe: boolean;       // true solo para el contacto del organizador/dueño del device
+  sports?: string[];   // tags de deporte que juega: "padel" | "tenis" | "futbol" | "golf" (revisado, ver sección 11)
 }
 ```
 - Debe existir siempre exactamente **un** Contact con `isMe: true`, creado en el onboarding inicial (primera vez que se abre la app).
 - `isMe` no puede eliminarse ni duplicarse.
+- **Revisado**: `sports` es opcional y de multi-selección (un contacto puede jugar varios deportes). Un contacto sin tags cargados no queda oculto por los filtros de ronda — sólo se filtran los que tienen tags de *otro* deporte (ver regla 11 y sección de Rounds).
 
 ### Event
 ```ts
@@ -117,6 +123,7 @@ interface Round {
 - El organizador avanza de ronda manualmente (botón "Pasar a Ronda N"), lo cual marca la ronda actual como `"completed"` (si hubo respuestas) o `"skipped"` (si se salta sin esperar), y activa la siguiente.
 - Un contacto que ya fue invitado en cualquier Round de un Event **no puede volver a ser invitado** en otra Round del mismo Event (ver Reglas de negocio).
 - **Invitación rápida (atajo, no una entidad nueva)**: para reemplazar una baja con un solo contacto ya decidido, la UI ofrece "Invitar directamente" — por debajo crea y activa una Round de un solo `contactId`, sin pasar por la pantalla de armado de ronda. Mismo modelo de datos, menos pasos.
+- **Revisado — filtro por deporte al armar ronda**: el picker de contactos elegibles ofrece un checkbox opcional "Sólo quienes juegan {deporte}" que filtra usando `Contact.sports` contra el `category` del deporte del Event. Apagado por defecto (no oculta nada a menos que el organizador lo active). Un contacto sin `sports` cargados nunca se oculta por este filtro — sólo se ocultan los que tienen tags de otro deporte distinto.
 
 ### Invitation
 ```ts
@@ -185,8 +192,8 @@ interface EventTemplate {
 1. **Home** — dashboard/resumen: banner (espacio publicitario, mock por ahora, temático según el deporte del próximo evento), tarjeta del próximo partido (toca → Upcoming Events), rondas activas esperando respuesta, grilla de accesos rápidos al resto de las pantallas, y acceso a "Crear evento". *Revisado: Home dejó de mostrar la lista completa de eventos; eso es ahora la pantalla Upcoming Events.*
 2. **Upcoming Events** — lista completa de eventos `upcoming`, con los que tienen una vacante recién abierta destacados arriba (badge "Vacante abierta") + acceso rápido a "Crear evento"
 3. **Create Event** — desde cero o desde Template; puede crearse ya con cupo lleno
-4. **Event Detail** — jugadores confirmados (con acción "Se baja" por jugador, incluido el organizador; "Sumarme" si el organizador se bajó), vacantes, rondas e invitations inline, atajo "Invitar directamente" a un contacto puntual, y botón manual "Marcar como jugado"
-5. **Contacts** — lista simple de contactos (nombre, teléfono, nota)
+4. **Event Detail** — jugadores confirmados (con acción "Se baja" por jugador, incluido el organizador; "Sumarme" si el organizador se bajó), vacantes, rondas e invitations inline, atajo "Invitar directamente" a un contacto puntual, botón manual "Marcar como jugado", y (revisado) "Agendar (+recordatorio)" / "Cómo llegar" para eventos `upcoming`
+5. **Contacts** — lista simple de contactos (nombre, teléfono, nota, tags de deporte)
 6. **Templates** — crear/editar/usar templates de eventos recurrentes
 7. **History** — eventos completados/cancelados
 8. **Settings** — mínimo viable (editar el contacto `isMe`, administrar MessageTemplates, etc.)
@@ -237,7 +244,7 @@ interface EventTemplate {
 
 ## 11. Decisiones ya cerradas (no reabrir sin motivo)
 
-- Sin tags ni niveles estructurados en el MVP.
+- **Revisado**: los tags de deporte en Contact ya no están fuera de alcance — se agregaron como `Contact.sports` (multi-select: Padel/Tenis/Futbol/Golf) para poder filtrar el picker de rondas por deporte. Sin niveles de habilidad ni otros campos estructurados por ahora — eso sigue fuera del MVP.
 - Estados de Invitation: solo `not_invited | invited | accepted | declined | expired` (sin "seen"/"no response").
 - Avance de ronda 100% manual, sin timers.
 - Organizador es un Contact más (`isMe: true`), no un campo separado.
@@ -257,3 +264,6 @@ interface EventTemplate {
 - **Revisado**: Home y Upcoming Events vuelven a ser pantallas separadas (como en la versión original de este documento, antes de fusionarlas por simplicidad). Home es ahora un dashboard (banner mock, próximo partido, rondas pendientes, accesos rápidos); Upcoming Events tiene la lista completa.
 - La navegación de pestañas vive arriba de la pantalla (junto al banner de marca), no abajo — más fácil de encontrar.
 - El banner publicitario en Home es un mock estático temático por deporte (padel/tenis/fútbol/genérico) — no hay integración real de anuncios ni tracking en el MVP.
+- **Revisado — recordatorios sin backend**: "Agendar (+recordatorio)" genera un archivo `.ics` descargable (evento + `VALARM` disparando 1h antes) que el organizador agrega a su calendario nativo (Google/Apple Calendar). El recordatorio lo dispara el propio calendario del sistema operativo, no la app — evita por completo la limitación de push notifications en PWA/iOS que ya se había descartado para otras features. La duración del evento es un default por categoría de deporte (90 min padel/tenis/fútbol, 240 min golf), no configurable en el MVP.
+- **Revisado — "Cómo llegar"**: abre Google Maps con el nombre del club como búsqueda (`https://www.google.com/maps/search/?api=1&query=...`), sin geocoding propio ni cálculo de tiempo de viaje real — el MVP no pide la dirección exacta del club, así que no hay con qué calcular una ETA precisa.
+- **Revisado — badge de alertas**: la pestaña Inicio muestra un badge rojo con la cantidad de eventos `upcoming` que tienen una ronda activa con invitaciones todavía sin respuesta (mismo criterio que la sección "Rondas esperando respuesta" de Home). No es "personalizable" en el sentido de preferencias configurables por el usuario — simplemente refleja el estado real de sus datos. Vacantes abiertas por sí solas no generan badge (son el estado normal hasta completar el cupo); solo cuenta lo que requiere una acción concreta (revisar respuestas).

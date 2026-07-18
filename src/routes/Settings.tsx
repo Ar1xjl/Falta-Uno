@@ -4,6 +4,7 @@ import { addMessageTemplate, deleteMessageTemplate, updateContact, updateMessage
 import type { MessageTemplate } from '../types'
 import { DEFAULT_MESSAGE_TEMPLATE_TEXT } from '../lib/whatsapp'
 import PageHeader from '../components/PageHeader'
+import HowItWorks from '../components/HowItWorks'
 
 export default function Settings() {
   const data = useAppData()
@@ -42,6 +43,8 @@ export default function Settings() {
           </p>
           <MessageTemplateList templates={data.messageTemplates} />
         </section>
+
+        <HowItWorks />
       </div>
     </div>
   )

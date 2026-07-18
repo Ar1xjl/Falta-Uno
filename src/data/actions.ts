@@ -20,14 +20,14 @@ export function ensureMeContact(name: string, phone: string): void {
   })
 }
 
-export function addContact(name: string, phone: string, note?: string): void {
+export function addContact(name: string, phone: string, note?: string, sports?: string[]): void {
   update((data) => ({
     ...data,
-    contacts: [...data.contacts, { id: newId(), name, phone, note, isMe: false }],
+    contacts: [...data.contacts, { id: newId(), name, phone, note, isMe: false, sports }],
   }))
 }
 
-export function updateContact(id: string, patch: Partial<Pick<Contact, 'name' | 'phone' | 'note'>>): void {
+export function updateContact(id: string, patch: Partial<Pick<Contact, 'name' | 'phone' | 'note' | 'sports'>>): void {
   update((data) => ({
     ...data,
     contacts: data.contacts.map((c) => (c.id === id ? { ...c, ...patch } : c)),

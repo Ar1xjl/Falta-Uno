@@ -22,6 +22,7 @@ import {
   saveEventAsTemplate,
 } from '../data/actions'
 import { getSportConfig } from '../data/sports'
+import { buildMapsLink, downloadICS } from '../lib/calendar'
 import type { Round } from '../types'
 import InvitationRow from '../components/InvitationRow'
 import WhatsAppQueue from '../components/WhatsAppQueue'
@@ -76,6 +77,22 @@ export default function EventDetail() {
             </span>
           )}
         </div>
+
+        {event.status === 'upcoming' && (
+          <div className="flex gap-2">
+            <button onClick={() => downloadICS(event)} className="btn btn-ghost flex-1">
+              📅 Agendar (+recordatorio)
+            </button>
+            <a
+              href={buildMapsLink(event.club)}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-ghost flex-1 text-center"
+            >
+              📍 Cómo llegar
+            </a>
+          </div>
+        )}
 
         <section>
           <div className="mb-2 flex items-center justify-between">
@@ -134,7 +151,14 @@ export default function EventDetail() {
                 Pasar a la próxima ronda
               </button>
             ) : (
-              vacancies > 0 && <NewRoundControls eventId={event.id} eligibleContactIds={eligible.map((c) => c.id)} />
+              vacancies > 0 && (
+                <NewRoundControls
+                  eventId={event.id}
+                  eligibleContactIds={eligible.map((c) => c.id)}
+                  sportCategory={sport.category}
+                  sportName={sport.name}
+                />
+              )
             )}
           </section>
         )}
@@ -226,16 +250,25 @@ function RoundCard({ round, onSendWhatsApp }: { round: Round; onSendWhatsApp: ()
 function NewRoundControls({
   eventId,
   eligibleContactIds,
+  sportCategory,
+  sportName,
 }: {
   eventId: string
   eligibleContactIds: string[]
+  sportCategory: string
+  sportName: string
 }) {
   const data = useAppData()
   const [building, setBuilding] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
   const [quickPickId, setQuickPickId] = useState('')
+  const [onlyThisSport, setOnlyThisSport] = useState(false)
 
   const eligible = eligibleContactIds.map((id) => getContact(data, id)!).filter(Boolean)
+  // Untagged contacts always show — filtering only ever hides someone tagged for a *different* sport.
+  const shown = onlyThisSport
+    ? eligible.filter((c) => !c.sports || c.sports.length === 0 || c.sports.includes(sportCategory))
+    : eligible
 
   function toggle(id: string) {
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
@@ -247,51 +280,62 @@ function NewRoundControls({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex gap-2">
-        <select className="flex-1" value={quickPickId} onChange={(e) => setQuickPickId(e.target.value)}>
-          <option value="">Invitar directamente a...</option>
-          {eligible.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-        <button
-          disabled={!quickPickId}
-          onClick={() => {
-            quickInvite(eventId, quickPickId)
-            setQuickPickId('')
-          }}
-          className="btn btn-primary"
-        >
-          Invitar
-        </button>
-      </div>
+      <label className="flex items-center gap-2">
+        <input type="checkbox" checked={onlyThisSport} onChange={(e) => setOnlyThisSport(e.target.checked)} />
+        <span className="hint">Sólo quienes juegan {sportName}</span>
+      </label>
 
-      {!building ? (
-        <button onClick={() => setBuilding(true)} className="btn btn-ghost">
-          Armar una ronda con varios
-        </button>
+      {shown.length === 0 ? (
+        <p className="hint">Nadie tiene esa etiqueta todavía — probá sin el filtro.</p>
       ) : (
-        <div className="card flex flex-col gap-2">
-          {eligible.map((c) => (
-            <label key={c.id} className="list-row">
-              <input type="checkbox" checked={selected.includes(c.id)} onChange={() => toggle(c.id)} />
-              <span className="text-sm text-ink">{c.name}</span>
-            </label>
-          ))}
-          <button
-            disabled={selected.length === 0}
-            onClick={() => {
-              createRound(eventId, selected)
-              setSelected([])
-              setBuilding(false)
-            }}
-            className="btn btn-primary"
-          >
-            Armar ronda
-          </button>
-        </div>
+        <>
+          <div className="flex gap-2">
+            <select className="flex-1" value={quickPickId} onChange={(e) => setQuickPickId(e.target.value)}>
+              <option value="">Invitar directamente a...</option>
+              {shown.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <button
+              disabled={!quickPickId}
+              onClick={() => {
+                quickInvite(eventId, quickPickId)
+                setQuickPickId('')
+              }}
+              className="btn btn-primary"
+            >
+              Invitar
+            </button>
+          </div>
+
+          {!building ? (
+            <button onClick={() => setBuilding(true)} className="btn btn-ghost">
+              Armar una ronda con varios
+            </button>
+          ) : (
+            <div className="card flex flex-col gap-2">
+              {shown.map((c) => (
+                <label key={c.id} className="list-row">
+                  <input type="checkbox" checked={selected.includes(c.id)} onChange={() => toggle(c.id)} />
+                  <span className="text-sm text-ink">{c.name}</span>
+                </label>
+              ))}
+              <button
+                disabled={selected.length === 0}
+                onClick={() => {
+                  createRound(eventId, selected)
+                  setSelected([])
+                  setBuilding(false)
+                }}
+                className="btn btn-primary"
+              >
+                Armar ronda
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
