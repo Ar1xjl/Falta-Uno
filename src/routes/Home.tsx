@@ -4,7 +4,6 @@ import { useAppData } from '../data/store'
 import { getActiveRound, getInvitationsForRound, getUpcomingEventsSorted, getVacancies } from '../data/selectors'
 import { getSportConfig } from '../data/sports'
 import type { Event } from '../types'
-import PageHeader from '../components/PageHeader'
 import AdBanner from '../components/AdBanner'
 import QuickLinks from '../components/QuickLinks'
 
@@ -24,22 +23,22 @@ export default function Home() {
     .filter((x): x is { event: Event; pending: number } => x !== null)
 
   return (
-    <div className="flex flex-col">
-      <PageHeader
-        title="Inicio"
-        trailing={
-          <button onClick={() => navigate('/events/new')} className="btn btn-primary">
-            + Crear evento
+    <div className="flex flex-col gap-4 p-4">
+      <AdBanner sportId={nextEvent?.sportId} />
+
+      <div className="card flex flex-col gap-1">
+        <div className="mb-1 flex items-center justify-between">
+          <p className="card-title mb-0">Tu próximo partido</p>
+          <button
+            onClick={() => navigate('/events/new')}
+            aria-label="Crear evento"
+            className="btn btn-primary flex h-7 w-7 shrink-0 items-center justify-center !rounded-full !p-0 text-base leading-none"
+          >
+            +
           </button>
-        }
-      />
-
-      <div className="flex flex-col gap-4 p-4">
-        <AdBanner sportId={nextEvent?.sportId} />
-
+        </div>
         {nextEvent ? (
-          <button onClick={() => navigate('/events')} className="card flex flex-col gap-1 text-left">
-            <p className="card-title mb-0">Tu próximo partido</p>
+          <button onClick={() => navigate('/events')} className="flex flex-col gap-1 text-left">
             <div className="flex items-center justify-between">
               <span className="font-semibold text-ink">{getSportConfig(nextEvent.sportId).name}</span>
               {getVacancies(nextEvent) > 0 ? (
@@ -57,41 +56,38 @@ export default function Home() {
             </span>
           </button>
         ) : (
-          <div className="card">
-            <p className="card-title mb-0">Tu próximo partido</p>
-            <p className="hint mt-2">Todavía no tenés partidos armados.</p>
-          </div>
+          <p className="hint">Todavía no tenés partidos armados.</p>
         )}
-
-        {needsAttention.length > 0 && (
-          <div className="card">
-            <p className="card-title mb-0">Rondas esperando respuesta</p>
-            <div className="mt-2 flex flex-col gap-1">
-              {needsAttention.map(({ event, pending }) => {
-                const sport = getSportConfig(event.sportId)
-                return (
-                  <button
-                    key={event.id}
-                    onClick={() => navigate(`/events/${event.id}`)}
-                    className="list-row justify-between text-left"
-                  >
-                    <span className="text-sm text-ink">
-                      {sport.name} · {event.club}
-                    </span>
-                    <span className="badge-amber">
-                      {pending} pendiente{pending === 1 ? '' : 's'}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        <QuickLinks contactsCount={data.contacts.filter((c) => !c.isMe).length} />
-
-        <HowItWorks />
       </div>
+
+      {needsAttention.length > 0 && (
+        <div className="card">
+          <p className="card-title mb-0">Rondas esperando respuesta</p>
+          <div className="mt-2 flex flex-col gap-1">
+            {needsAttention.map(({ event, pending }) => {
+              const sport = getSportConfig(event.sportId)
+              return (
+                <button
+                  key={event.id}
+                  onClick={() => navigate(`/events/${event.id}`)}
+                  className="list-row justify-between text-left"
+                >
+                  <span className="text-sm text-ink">
+                    {sport.name} · {event.club}
+                  </span>
+                  <span className="badge-amber">
+                    {pending} pendiente{pending === 1 ? '' : 's'}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      <QuickLinks contactsCount={data.contacts.filter((c) => !c.isMe).length} />
+
+      <HowItWorks />
     </div>
   )
 }
@@ -146,7 +142,7 @@ function HowItWorks() {
             <ol className="hint list-decimal space-y-1 pl-4">
               <li>Cargá tus contactos habituales en la pestaña Contactos.</li>
               <li>
-                Tocá <strong className="text-ink">+ Crear evento</strong> y anotá quién ya está confirmado.
+                Tocá <strong className="text-ink">+</strong> y anotá quién ya está confirmado.
               </li>
               <li>Si falta gente, armá una ronda o invitá directo a alguien puntual.</li>
               <li>Mandale el mensaje por WhatsApp con un toque y marcá quién aceptó.</li>
