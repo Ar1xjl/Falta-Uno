@@ -145,17 +145,33 @@ export function generateRecurringEvents(templateId: string, opts: { count: numbe
   return newDates.length
 }
 
-/** "Se baja": remove a confirmed player, reopening a vacancy instantly. Blocked for isMe (rule 4). */
+/** "Se baja": remove a confirmed player (including the organizer) from an event, reopening a vacancy instantly. */
 export function removeConfirmedContact(eventId: string, contactId: string): void {
   update((data) => {
     const contact = data.contacts.find((c) => c.id === contactId)
-    if (!contact || contact.isMe) return data
+    if (!contact) return data
     return {
       ...data,
       events: data.events.map((e) =>
         e.id === eventId
           ? { ...e, confirmedContactIds: e.confirmedContactIds.filter((id) => id !== contactId) }
           : e,
+      ),
+    }
+  })
+}
+
+/** Lets the organizer rejoin an event they'd previously dropped out of, if there's still room. */
+export function rejoinEvent(eventId: string): void {
+  update((data) => {
+    const event = data.events.find((e) => e.id === eventId)
+    const me = data.contacts.find((c) => c.isMe)
+    if (!event || !me) return data
+    if (event.confirmedContactIds.includes(me.id) || isEventFull(event)) return data
+    return {
+      ...data,
+      events: data.events.map((e) =>
+        e.id === eventId ? { ...e, confirmedContactIds: [...e.confirmedContactIds, me.id] } : e,
       ),
     }
   })

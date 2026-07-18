@@ -96,7 +96,7 @@ interface Event {
 - **"Cupo lleno" (vacantes = 0) NO es lo mismo que `status: "completed"`.** Cupo lleno es solo un indicador calculado — el partido puede seguir `"upcoming"` con cupo lleno, y volver a tener vacantes si alguien se baja después. `status` refleja únicamente la línea de tiempo del partido (se jugó o no), nunca la ocupación del roster.
 - Un Event puede crearse ya con cupo lleno desde el principio (sin necesidad de armar ninguna Round) — es el caso normal de "ya tengo el partido armado".
 - `"completed"` se marca **manualmente** por el organizador (botón "Marcar como jugado"), típicamente después de la fecha del partido. No hay transición automática por fecha/hora ni por cupo lleno.
-- **Baja de un confirmado**: el organizador puede quitar a cualquier contacto (que no sea `isMe`) de `confirmedContactIds` mediante la acción "Se baja" (confirmación simple, sin pedir motivo). Esto reabre vacantes inmediatamente, incluso si el Event ya tenía cupo lleno. Este es el disparador central del caso de uso de la app.
+- **Baja de un confirmado**: el organizador puede quitar a **cualquier** contacto confirmado —incluido `isMe`— de `confirmedContactIds` mediante la acción "Se baja" (confirmación simple, sin pedir motivo). Esto reabre vacantes inmediatamente, incluso si el Event ya tenía cupo lleno. Este es el disparador central del caso de uso de la app. Si el organizador se baja de su propio evento, puede "Sumarse" de nuevo más tarde (acción separada) mientras haya vacantes; no puede forzar su reingreso si el cupo ya se llenó con otra persona.
 - **Aviso de vacante**: cuando un Event `upcoming` pasa de cupo lleno a con vacantes (por una baja), la app lo destaca en Home/Upcoming Events (ej. sube al tope de la lista + badge "Vacante abierta"). No hay notificaciones push reales — el MVP no tiene backend, así que el aviso solo aparece al abrir la app.
 
 ### Round
@@ -170,27 +170,30 @@ interface EventTemplate {
 1. **Aceptación automática de cupo**: cuando una Invitation pasa a `accepted`, ese `contactId` se agrega a `confirmedContactIds` del Event.
 2. **No doble invitación**: si un contacto ya tiene una Invitation en cualquier Round de un Event (en cualquier estado), no puede ser agregado a otra Round del mismo Event. La UI debe filtrarlo del picker de contactos al armar rondas subsiguientes.
 3. **Invitaciones reabribles**: `declined` y `expired` ya no son definitivos — el organizador puede reabrir y editar el status de una Invitation existente en cualquier momento (ver Invitation). Esto no crea una Invitation nueva, así que no viola la regla 2.
-4. **Organizador = jugador**: el Contact con `isMe: true` está siempre en `confirmedContactIds` desde la creación del Event; nunca es invitado a sí mismo ni aparece en pickers de invitación.
+4. **Organizador = jugador**: el Contact con `isMe: true` está siempre en `confirmedContactIds` desde la creación del Event; nunca es invitado a sí mismo ni aparece en pickers de invitación. **Revisado**: esto no lo hace irremovible — el organizador puede darse de baja de un Event puntual igual que cualquier confirmado (regla 9) y sumarse de nuevo si queda vacante (regla 10). Sigue sin poder ser invitado a sí mismo vía Round.
 5. **Una ronda activa por vez**: no se puede activar una Round nueva mientras otra sigue `active` para el mismo Event; primero hay que completar/saltar la actual.
 6. **Historial**: no es una entidad separada. Es la lista de Events con `status: "completed"` (o `"cancelled"`), consultable con sus Rounds/Invitations asociadas tal cual quedaron.
 7. **Cupo cubierto (auto-lock contra overbooking)**: cuando las vacantes de un Event llegan a 0, el botón "Aceptó" se deshabilita para el resto de las invitations en estado `invited` (de cualquier Round, no solo la activa). En su lugar, la UI ofrece un botón "Cupo cubierto", que abre WhatsApp con un mensaje prellenado de cortesía (ej: *"La posición está cubierta, si se abre un hueco te aviso. Si no, la próxima."*). Al confirmar el envío (mismo patrón de la cola guiada), la Invitation pasa a `expired`.
 8. **Cupo lleno ≠ completado**: vacantes en 0 es solo un estado calculado; no dispara ningún cambio de `status`. El Event sigue `upcoming` hasta que el organizador lo marca manualmente como `completed` ("Marcar como jugado").
-9. **Baja de un confirmado reabre vacantes**: quitar un contacto de `confirmedContactIds` (acción "Se baja") es válido en cualquier momento mientras el Event sea `upcoming`, incluso con cupo lleno, y recalcula vacantes al instante. Si el Event tenía cupo lleno, dispara el aviso de "Vacante abierta" en Home.
+9. **Baja de un confirmado reabre vacantes**: quitar un contacto de `confirmedContactIds` (acción "Se baja") es válido en cualquier momento mientras el Event sea `upcoming`, incluso con cupo lleno, y recalcula vacantes al instante. Aplica también a `isMe` (ver regla 4 revisada). Si el Event tenía cupo lleno, dispara el aviso de "Vacante abierta" en Home.
+10. **Reingreso del organizador**: si `isMe` se dio de baja de un Event, puede "Sumarse" de nuevo mientras haya vacantes; bloqueado si el cupo ya se llenó con otra persona mientras tanto (mismo criterio que la regla 7).
 
 ---
 
 ## 7. Pantallas (MVP)
 
-1. **Home** — próximos eventos, con los que tienen una vacante recién abierta destacados arriba (badge "Vacante abierta") + acceso rápido a "Crear evento"
-2. **Upcoming Events** — lista de eventos `upcoming`
+1. **Home** — dashboard/resumen: banner (espacio publicitario, mock por ahora, temático según el deporte del próximo evento), tarjeta del próximo partido (toca → Upcoming Events), rondas activas esperando respuesta, grilla de accesos rápidos al resto de las pantallas, y acceso a "Crear evento". *Revisado: Home dejó de mostrar la lista completa de eventos; eso es ahora la pantalla Upcoming Events.*
+2. **Upcoming Events** — lista completa de eventos `upcoming`, con los que tienen una vacante recién abierta destacados arriba (badge "Vacante abierta") + acceso rápido a "Crear evento"
 3. **Create Event** — desde cero o desde Template; puede crearse ya con cupo lleno
-4. **Event Detail** — jugadores confirmados (con acción "Se baja" por jugador), vacantes, rondas e invitations inline, atajo "Invitar directamente" a un contacto puntual, y botón manual "Marcar como jugado"
+4. **Event Detail** — jugadores confirmados (con acción "Se baja" por jugador, incluido el organizador; "Sumarme" si el organizador se bajó), vacantes, rondas e invitations inline, atajo "Invitar directamente" a un contacto puntual, y botón manual "Marcar como jugado"
 5. **Contacts** — lista simple de contactos (nombre, teléfono, nota)
 6. **Templates** — crear/editar/usar templates de eventos recurrentes
 7. **History** — eventos completados/cancelados
 8. **Settings** — mínimo viable (editar el contacto `isMe`, administrar MessageTemplates, etc.)
 
 *Nota: "Tags" e "Invitation Rounds" ya no son pantallas separadas — quedaron consolidadas dentro de Contacts y Event Detail respectivamente, según lo acordado.*
+
+**Navegación**: menú de pestañas arriba (no abajo) — Inicio, Eventos, Contactos, Templates, Historial, Ajustes — siempre visible, junto al banner de marca.
 
 ---
 
@@ -246,7 +249,11 @@ interface EventTemplate {
 - Cuando las vacantes llegan a 0, no se pueden aceptar más invitaciones: el botón "Aceptó" se bloquea para el resto y se ofrece un mensaje de cortesía ("Cupo cubierto") vía WhatsApp que marca la Invitation como `expired`. Previene overbooking sin agregar un status nuevo.
 - "Cupo lleno" (vacantes=0) y `status: "completed"` son conceptos separados. `completed` solo se marca manualmente ("Marcar como jugado"); no hay transición automática por fecha ni por cupo lleno.
 - Quitar a un jugador confirmado ("Se baja") es una acción simple con solo confirmación, sin pedir motivo, y reabre vacantes al instante — incluso con el Event en cupo lleno.
-- El aviso de "Vacante abierta" es solo un indicador in-app (badge en Home) — no hay push notifications reales en el MVP; eso requeriría backend, igual que el envío automático de WhatsApp.
+- El aviso de "Vacante abierta" es solo un indicador in-app (badge, visible en Home y en Upcoming Events) — no hay push notifications reales en el MVP; eso requeriría backend, igual que el envío automático de WhatsApp.
 - Existe un atajo de "Invitar directamente" a un contacto puntual (crea y activa una Round de un solo contacto por debajo), además del flujo completo de armar Rounds.
 - `declined` y `expired` son reabribles: el organizador puede cambiar el status de una Invitation existente en cualquier momento (corrección de un toque erróneo, o alguien que estaba no disponible y ahora sí puede).
 - Los mensajes de WhatsApp usan MessageTemplates guardados y editables por el organizador (con placeholders de sport/club/fecha/hora), no un texto fijo único — pueden variar por Round.
+- **Revisado**: el organizador (`isMe`) puede darse de baja ("Se baja") de un Event puntual igual que cualquier confirmado, y "Sumarse" de nuevo si queda vacante. Ya no es irremovible — la única restricción que se mantiene es que nunca aparece en pickers de invitación ni se invita a sí mismo vía Round.
+- **Revisado**: Home y Upcoming Events vuelven a ser pantallas separadas (como en la versión original de este documento, antes de fusionarlas por simplicidad). Home es ahora un dashboard (banner mock, próximo partido, rondas pendientes, accesos rápidos); Upcoming Events tiene la lista completa.
+- La navegación de pestañas vive arriba de la pantalla (junto al banner de marca), no abajo — más fácil de encontrar.
+- El banner publicitario en Home es un mock estático temático por deporte (padel/tenis/fútbol/genérico) — no hay integración real de anuncios ni tracking en el MVP.

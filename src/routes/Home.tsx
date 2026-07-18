@@ -1,19 +1,32 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppData } from '../data/store'
-import { getUpcomingEventsSorted } from '../data/selectors'
-import EventCard from '../components/EventCard'
+import { getActiveRound, getInvitationsForRound, getUpcomingEventsSorted, getVacancies } from '../data/selectors'
+import { getSportConfig } from '../data/sports'
+import type { Event } from '../types'
 import PageHeader from '../components/PageHeader'
+import AdBanner from '../components/AdBanner'
+import QuickLinks from '../components/QuickLinks'
 
 export default function Home() {
   const data = useAppData()
   const navigate = useNavigate()
   const events = getUpcomingEventsSorted(data)
+  const nextEvent = events[0]
+
+  const needsAttention = events
+    .map((event) => {
+      const round = getActiveRound(data, event.id)
+      if (!round) return null
+      const pending = getInvitationsForRound(data, round.id).filter((i) => i.status === 'invited').length
+      return pending > 0 ? { event, pending } : null
+    })
+    .filter((x): x is { event: Event; pending: number } => x !== null)
 
   return (
     <div className="flex flex-col">
       <PageHeader
-        title="Próximos partidos"
+        title="Inicio"
         trailing={
           <button onClick={() => navigate('/events/new')} className="btn btn-primary">
             + Crear evento
@@ -21,14 +34,63 @@ export default function Home() {
         }
       />
 
-      <div className="flex flex-col gap-3 p-4">
-        <HowItWorks />
+      <div className="flex flex-col gap-4 p-4">
+        <AdBanner sportId={nextEvent?.sportId} />
 
-        {events.length === 0 ? (
-          <p className="empty-state">Todavía no tenés partidos armados.</p>
+        {nextEvent ? (
+          <button onClick={() => navigate('/events')} className="card flex flex-col gap-1 text-left">
+            <p className="card-title mb-0">Tu próximo partido</p>
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-ink">{getSportConfig(nextEvent.sportId).name}</span>
+              {getVacancies(nextEvent) > 0 ? (
+                <span className="badge-amber">Vacante abierta</span>
+              ) : (
+                <span className="badge-brand">Cupo lleno</span>
+              )}
+            </div>
+            <span className="text-muted text-sm">
+              {nextEvent.club}
+              {nextEvent.court ? ` · Cancha ${nextEvent.court}` : ''}
+            </span>
+            <span className="text-muted text-sm">
+              {nextEvent.date} · {nextEvent.time}hs
+            </span>
+          </button>
         ) : (
-          events.map((event) => <EventCard key={event.id} event={event} />)
+          <div className="card">
+            <p className="card-title mb-0">Tu próximo partido</p>
+            <p className="hint mt-2">Todavía no tenés partidos armados.</p>
+          </div>
         )}
+
+        {needsAttention.length > 0 && (
+          <div className="card">
+            <p className="card-title mb-0">Rondas esperando respuesta</p>
+            <div className="mt-2 flex flex-col gap-1">
+              {needsAttention.map(({ event, pending }) => {
+                const sport = getSportConfig(event.sportId)
+                return (
+                  <button
+                    key={event.id}
+                    onClick={() => navigate(`/events/${event.id}`)}
+                    className="list-row justify-between text-left"
+                  >
+                    <span className="text-sm text-ink">
+                      {sport.name} · {event.club}
+                    </span>
+                    <span className="badge-amber">
+                      {pending} pendiente{pending === 1 ? '' : 's'}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        <QuickLinks contactsCount={data.contacts.filter((c) => !c.isMe).length} />
+
+        <HowItWorks />
       </div>
     </div>
   )
@@ -54,8 +116,12 @@ function HowItWorks() {
             <p className="section-label mb-1">Qué es cada pestaña</p>
             <ul className="hint flex flex-col gap-1.5">
               <li>
-                <strong className="text-ink">Inicio</strong> — tus próximos partidos. El que tiene una vacante recién
-                abierta aparece arriba con el cartel "Vacante abierta".
+                <strong className="text-ink">Inicio</strong> — tu resumen: próximo partido, rondas que esperan
+                respuesta y accesos rápidos.
+              </li>
+              <li>
+                <strong className="text-ink">Eventos</strong> — todos tus próximos partidos. El que tiene una vacante
+                recién abierta aparece arriba con el cartel "Vacante abierta".
               </li>
               <li>
                 <strong className="text-ink">Contactos</strong> — tu lista de gente para invitar. Podés cargarlos a

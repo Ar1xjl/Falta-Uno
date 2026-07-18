@@ -17,6 +17,7 @@ import {
   createRound,
   markEventCompleted,
   quickInvite,
+  rejoinEvent,
   removeConfirmedContact,
   saveEventAsTemplate,
 } from '../data/actions'
@@ -96,10 +97,11 @@ export default function EventDetail() {
                   {c.name}
                   {c.isMe && ' (vos)'}
                 </span>
-                {!c.isMe && event.status === 'upcoming' && (
+                {event.status === 'upcoming' && (
                   <button
                     onClick={() => {
-                      if (confirm(`¿${c.name} se baja del partido?`)) removeConfirmedContact(event.id, c.id)
+                      const question = c.isMe ? '¿Te bajás del partido?' : `¿${c.name} se baja del partido?`
+                      if (confirm(question)) removeConfirmedContact(event.id, c.id)
                     }}
                     className="text-danger text-xs font-semibold"
                   >
@@ -109,6 +111,14 @@ export default function EventDetail() {
               </div>
             ))}
           </div>
+          {event.status === 'upcoming' && !confirmed.some((c) => c.isMe) && (
+            <div className="list-row mt-1 justify-between">
+              <span className="text-sm text-ink">Vos no estás anotado</span>
+              <button onClick={() => rejoinEvent(event.id)} disabled={vacancies <= 0} className="text-brand text-xs font-semibold disabled:opacity-40">
+                Sumarme
+              </button>
+            </div>
+          )}
         </section>
 
         {event.status === 'upcoming' && (
