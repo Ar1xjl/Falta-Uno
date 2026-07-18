@@ -12,6 +12,7 @@ export interface Contact {
   note?: string
   isMe: boolean
   sports?: string[] // sport tag ids the contact plays, e.g. ["padel", "golf"]
+  paymentAlias?: string // MP alias, CVU, or CBU — free text, only ever displayed/copied, never parsed
 }
 
 export type EventStatus = 'upcoming' | 'completed' | 'cancelled'
@@ -83,6 +84,27 @@ export interface EventTemplate {
   recurrence?: EventTemplateRecurrence
 }
 
+/** A one-off cost (balls, snacks, a single court rental) or a recurring membership/abono payment. */
+export interface Expense {
+  id: string
+  description: string
+  amount: number
+  paidByContactId: string
+  splitContactIds: string[] // equal split among these; add a second Expense for edge cases rather than prorating
+  date: string // ISO date "YYYY-MM-DD"
+  eventId?: string // one-off cost tied to a specific Event
+  eventTemplateId?: string // recurring membership tied to a Template's core group
+}
+
+/** Records an actual manual payment between two contacts, to zero out a balance over time. */
+export interface Settlement {
+  id: string
+  fromContactId: string
+  toContactId: string
+  amount: number
+  date: string // ISO date "YYYY-MM-DD"
+}
+
 export interface AppData {
   version: 1
   contacts: Contact[]
@@ -91,4 +113,6 @@ export interface AppData {
   invitations: Invitation[]
   messageTemplates: MessageTemplate[]
   eventTemplates: EventTemplate[]
+  expenses: Expense[]
+  settlements: Settlement[]
 }

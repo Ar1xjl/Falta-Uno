@@ -204,6 +204,7 @@ function ContactForm({
   const [phone, setPhone] = useState(contact?.phone ?? '')
   const [note, setNote] = useState(contact?.note ?? '')
   const [sports, setSports] = useState<string[]>(contact?.sports ?? [])
+  const [paymentAlias, setPaymentAlias] = useState(contact?.paymentAlias ?? '')
 
   function toggleSport(id: string) {
     setSports((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
@@ -213,9 +214,15 @@ function ContactForm({
     e.preventDefault()
     if (!name.trim() || !phone.trim()) return
     if (contact) {
-      updateContact(contact.id, { name: name.trim(), phone: phone.trim(), note: note.trim() || undefined, sports })
+      updateContact(contact.id, {
+        name: name.trim(),
+        phone: phone.trim(),
+        note: note.trim() || undefined,
+        sports,
+        paymentAlias: paymentAlias.trim() || undefined,
+      })
     } else {
-      addContact(name.trim(), phone.trim(), note.trim() || undefined, sports)
+      addContact(name.trim(), phone.trim(), note.trim() || undefined, sports, paymentAlias.trim() || undefined)
     }
     onDone()
   }
@@ -225,6 +232,11 @@ function ContactForm({
       <input placeholder="Nombre" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
       <input placeholder="Teléfono (+549...)" value={phone} onChange={(e) => setPhone(e.target.value)} />
       <input placeholder="Nota (opcional)" value={note} onChange={(e) => setNote(e.target.value)} />
+      <input
+        placeholder="Alias / CVU / CBU (opcional)"
+        value={paymentAlias}
+        onChange={(e) => setPaymentAlias(e.target.value)}
+      />
       <div>
         <p className="hint mb-1">Deportes que juega</p>
         <div className="flex flex-wrap gap-2">
@@ -263,6 +275,7 @@ function ContactRow({ contact }: { contact: Contact }) {
         <p className="font-semibold text-ink">{contact.name}</p>
         <p className="text-muted text-sm">{contact.phone}</p>
         {contact.note && <p className="hint">{contact.note}</p>}
+        {contact.paymentAlias && <p className="hint">💰 {contact.paymentAlias}</p>}
         {contact.sports && contact.sports.length > 0 && (
           <div className="mt-1 flex flex-wrap gap-1">
             {contact.sports.map((s) => (

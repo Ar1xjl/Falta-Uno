@@ -11,6 +11,8 @@ function emptyData(): AppData {
     invitations: [],
     messageTemplates: [],
     eventTemplates: [],
+    expenses: [],
+    settlements: [],
   }
 }
 

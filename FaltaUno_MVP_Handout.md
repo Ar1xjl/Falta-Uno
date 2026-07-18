@@ -170,6 +170,38 @@ interface EventTemplate {
 - Crear un Event desde un Template: copia todos los campos del template + pide solo `date` y `time` al usuario.
 - Un template puede crearse desde cero, o "guardar como template" desde un Event ya armado.
 
+### Expense (Fase 5, revisado)
+```ts
+interface Expense {
+  id: string;
+  description: string;
+  amount: number;
+  paidByContactId: string;
+  splitContactIds: string[];   // split parejo entre estos; para casos raros se carga un segundo Expense chico, no se prorratea
+  date: string;                 // ISO date
+  eventId?: string;             // gasto puntual atado a un Event (pelotas, cancha suelta)
+  eventTemplateId?: string;     // abono/membresía atado al núcleo fijo de un Template
+}
+```
+- Un Expense puede no estar atado a nada (gasto suelto), a un Event puntual, o a un EventTemplate (para abonos mensuales tipo Padel/Fútbol).
+- El split es siempre parejo (`amount / splitContactIds.length`) — no hay montos custom por persona en el MVP.
+- Quien paga (`paidByContactId`) no tiene por qué estar en `splitContactIds` (puede adelantar plata sin compartir el gasto), aunque lo habitual es que sí esté.
+
+### Settlement (Fase 5)
+```ts
+interface Settlement {
+  id: string;
+  fromContactId: string;   // quien pagó
+  toContactId: string;     // quien recibió
+  amount: number;
+  date: string;
+}
+```
+- Registra que un pago manual ya ocurrió (fuera de la app — no hay integración real de Mercado Pago), para saldar balances con el tiempo. Sin esto, las deudas nunca se resolverían.
+
+### Contact.paymentAlias (Fase 5)
+- Campo de texto libre en Contact (`paymentAlias?: string`) para alias de MP, CVU o CBU — se muestra para copiar manualmente, nunca se valida ni se usa para ejecutar nada.
+
 ---
 
 ## 6. Reglas de negocio
@@ -184,6 +216,8 @@ interface EventTemplate {
 8. **Cupo lleno ≠ completado**: vacantes en 0 es solo un estado calculado; no dispara ningún cambio de `status`. El Event sigue `upcoming` hasta que el organizador lo marca manualmente como `completed` ("Marcar como jugado").
 9. **Baja de un confirmado reabre vacantes**: quitar un contacto de `confirmedContactIds` (acción "Se baja") es válido en cualquier momento mientras el Event sea `upcoming`, incluso con cupo lleno, y recalcula vacantes al instante. Aplica también a `isMe` (ver regla 4 revisada). Si el Event tenía cupo lleno, dispara el aviso de "Vacante abierta" en Home.
 10. **Reingreso del organizador**: si `isMe` se dio de baja de un Event, puede "Sumarse" de nuevo mientras haya vacantes; bloqueado si el cupo ya se llenó con otra persona mientras tanto (mismo criterio que la regla 7).
+11. **Balance global por contacto (Fase 5)**: el balance de cada contacto es un único número neto, sumando todos los Expenses (paga: `+amount`, participa: `-amount/N`) y todos los Settlements (`fromContactId: +amount`, `toContactId: -amount`) — no está separado por deporte/Template. Positivo = le deben; negativo = debe.
+12. **Simplificación de deudas (Fase 5)**: "Para saldar" usa el algoritmo greedy estándar (mismo que Splitwise) — empareja repetidamente al mayor acreedor con el mayor deudor hasta saldar todo, minimizando la cantidad de pagos sugeridos en vez de mostrar cada deuda cruzada individual.
 
 ---
 
@@ -192,11 +226,12 @@ interface EventTemplate {
 1. **Home** — dashboard/resumen: banner (espacio publicitario, mock por ahora, temático según el deporte del próximo evento), tarjeta del próximo partido (toca → Upcoming Events), rondas activas esperando respuesta, grilla de accesos rápidos al resto de las pantallas, y acceso a "Crear evento". *Revisado: Home dejó de mostrar la lista completa de eventos; eso es ahora la pantalla Upcoming Events.*
 2. **Upcoming Events** — lista completa de eventos `upcoming`, con los que tienen una vacante recién abierta destacados arriba (badge "Vacante abierta") + acceso rápido a "Crear evento"
 3. **Create Event** — desde cero o desde Template; puede crearse ya con cupo lleno
-4. **Event Detail** — jugadores confirmados (con acción "Se baja" por jugador, incluido el organizador; "Sumarme" si el organizador se bajó), vacantes, rondas e invitations inline, atajo "Invitar directamente" a un contacto puntual, botón manual "Marcar como jugado", y (revisado) "Agendar (+recordatorio)" / "Cómo llegar" para eventos `upcoming`
-5. **Contacts** — lista simple de contactos (nombre, teléfono, nota, tags de deporte)
-6. **Templates** — crear/editar/usar templates de eventos recurrentes
+4. **Event Detail** — jugadores confirmados (con acción "Se baja" por jugador, incluido el organizador; "Sumarme" si el organizador se bajó), vacantes, rondas e invitations inline, atajo "Invitar directamente" a un contacto puntual, botón manual "Marcar como jugado", (revisado) "Agendar (+recordatorio)" / "Cómo llegar" para eventos `upcoming`, y (Fase 5) atajo "Agregar gasto" pre-cargando a los confirmados del Event
+5. **Contacts** — lista simple de contactos (nombre, teléfono, nota, tags de deporte, y (Fase 5) alias/CVU/CBU)
+6. **Templates** — crear/editar/usar templates de eventos recurrentes; (Fase 5) atajo "Agregar gasto (abono)" pre-cargando al núcleo fijo del Template
 7. **History** — eventos completados/cancelados
 8. **Settings** — mínimo viable (editar el contacto `isMe`, administrar MessageTemplates, etc.)
+9. **Gastos (Fase 5)** — accesible desde la grilla de accesos rápidos de Home, no desde el nav de arriba (ya lleno). Dos vistas: lista de Expenses (con borrar) y Balances (balance neto por contacto + sugerencias "Para saldar" con "Copiar alias" y "Marcar como pagado"). "+ Nuevo gasto" abre un form que acepta `?eventId=` o `?templateId=` por query param para pre-cargar el link y los participantes por defecto.
 
 *Nota: "Tags" e "Invitation Rounds" ya no son pantallas separadas — quedaron consolidadas dentro de Contacts y Event Detail respectivamente, según lo acordado.*
 
@@ -267,3 +302,4 @@ interface EventTemplate {
 - **Revisado — recordatorios sin backend**: "Agendar (+recordatorio)" genera un archivo `.ics` descargable (evento + `VALARM` disparando 1h antes) que el organizador agrega a su calendario nativo (Google/Apple Calendar). El recordatorio lo dispara el propio calendario del sistema operativo, no la app — evita por completo la limitación de push notifications en PWA/iOS que ya se había descartado para otras features. La duración del evento es un default por categoría de deporte (90 min padel/tenis/fútbol, 240 min golf), no configurable en el MVP.
 - **Revisado — "Cómo llegar"**: abre Google Maps con el nombre del club como búsqueda (`https://www.google.com/maps/search/?api=1&query=...`), sin geocoding propio ni cálculo de tiempo de viaje real — el MVP no pide la dirección exacta del club, así que no hay con qué calcular una ETA precisa.
 - **Revisado — badge de alertas**: la pestaña Inicio muestra un badge rojo con la cantidad de eventos `upcoming` que tienen una ronda activa con invitaciones todavía sin respuesta (mismo criterio que la sección "Rondas esperando respuesta" de Home). No es "personalizable" en el sentido de preferencias configurables por el usuario — simplemente refleja el estado real de sus datos. Vacantes abiertas por sí solas no generan badge (son el estado normal hasta completar el cupo); solo cuenta lo que requiere una acción concreta (revisar respuestas).
+- **Fase 5 — gastos y balances, alcance cerrado**: split siempre parejo (sin montos custom por persona); balance global por contacto, no separado por deporte/Template; sin integración real de Mercado Pago ni ejecución de pagos — solo tracking, cálculo de balance y sugerencia de "quién le paga a quién" (algoritmo greedy tipo Splitwise). El alias/CVU/CBU es un campo de texto libre sin validar. "Gastos" vive en la grilla de accesos rápidos de Home, no en el nav de arriba (ya con 6 pestañas).

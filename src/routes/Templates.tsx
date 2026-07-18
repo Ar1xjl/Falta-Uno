@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAppData } from '../data/store'
 import {
   createEventTemplate,
@@ -14,6 +15,7 @@ const WEEKDAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes
 
 export default function Templates() {
   const data = useAppData()
+  const navigate = useNavigate()
   const [editing, setEditing] = useState<EventTemplate | 'new' | null>(null)
 
   if (editing) {
@@ -59,6 +61,12 @@ export default function Templates() {
                   </button>
                 </div>
               </div>
+              <button
+                onClick={() => navigate(`/expenses/new?templateId=${t.id}`)}
+                className="text-brand mt-2 text-sm font-semibold"
+              >
+                💰 Agregar gasto (abono)
+              </button>
               {t.recurrence && <GenerateRecurringControls template={t} />}
             </div>
           ))

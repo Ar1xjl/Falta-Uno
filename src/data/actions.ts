@@ -6,8 +6,10 @@ import type {
   Contact,
   Event,
   EventTemplate,
+  Expense,
   MessageTemplate,
   Round,
+  Settlement,
 } from '../types'
 
 // ---------- Contacts ----------
@@ -20,14 +22,17 @@ export function ensureMeContact(name: string, phone: string): void {
   })
 }
 
-export function addContact(name: string, phone: string, note?: string, sports?: string[]): void {
+export function addContact(name: string, phone: string, note?: string, sports?: string[], paymentAlias?: string): void {
   update((data) => ({
     ...data,
-    contacts: [...data.contacts, { id: newId(), name, phone, note, isMe: false, sports }],
+    contacts: [...data.contacts, { id: newId(), name, phone, note, isMe: false, sports, paymentAlias }],
   }))
 }
 
-export function updateContact(id: string, patch: Partial<Pick<Contact, 'name' | 'phone' | 'note' | 'sports'>>): void {
+export function updateContact(
+  id: string,
+  patch: Partial<Pick<Contact, 'name' | 'phone' | 'note' | 'sports' | 'paymentAlias'>>,
+): void {
   update((data) => ({
     ...data,
     contacts: data.contacts.map((c) => (c.id === id ? { ...c, ...patch } : c)),
@@ -431,5 +436,40 @@ export function deleteEventTemplate(id: string): void {
   update((data) => ({
     ...data,
     eventTemplates: data.eventTemplates.filter((t) => t.id !== id),
+  }))
+}
+
+// ---------- Expenses & Settlements ----------
+
+export function addExpense(input: Omit<Expense, 'id'>): string {
+  const id = newId()
+  update((data) => ({
+    ...data,
+    expenses: [...data.expenses, { id, ...input }],
+  }))
+  return id
+}
+
+export function deleteExpense(id: string): void {
+  update((data) => ({
+    ...data,
+    expenses: data.expenses.filter((e) => e.id !== id),
+  }))
+}
+
+/** Records a manual payment between two contacts, zeroing out (part of) a balance. */
+export function addSettlement(input: Omit<Settlement, 'id'>): string {
+  const id = newId()
+  update((data) => ({
+    ...data,
+    settlements: [...data.settlements, { id, ...input }],
+  }))
+  return id
+}
+
+export function deleteSettlement(id: string): void {
+  update((data) => ({
+    ...data,
+    settlements: data.settlements.filter((s) => s.id !== id),
   }))
 }

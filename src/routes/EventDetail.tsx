@@ -165,6 +165,9 @@ export default function EventDetail() {
 
         {event.status === 'upcoming' && (
           <section className="flex flex-col gap-2 border-t pt-4" style={{ borderColor: 'var(--color-line)' }}>
+            <button onClick={() => navigate(`/expenses/new?eventId=${event.id}`)} className="btn btn-ghost">
+              💰 Agregar gasto
+            </button>
             <button onClick={() => markEventCompleted(event.id)} className="btn btn-ghost active">
               Marcar como jugado
             </button>

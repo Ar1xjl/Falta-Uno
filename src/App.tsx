@@ -11,6 +11,8 @@ import History from './routes/History'
 import Settings from './routes/Settings'
 import CreateEvent from './routes/CreateEvent'
 import EventDetail from './routes/EventDetail'
+import Expenses from './routes/Expenses'
+import NewExpense from './routes/NewExpense'
 
 function App() {
   const data = useAppData()
@@ -27,9 +29,11 @@ function App() {
         <Route path="/templates" element={<Templates />} />
         <Route path="/history" element={<History />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/expenses" element={<Expenses />} />
       </Route>
       <Route path="/events/new" element={<CreateEvent />} />
       <Route path="/events/:eventId" element={<EventDetail />} />
+      <Route path="/expenses/new" element={<NewExpense />} />
     </Routes>
   )
 }
