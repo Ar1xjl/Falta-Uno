@@ -4,7 +4,7 @@ export default function Banner() {
       <div className="logo">
         Falta<span className="accent">Uno!!</span>
       </div>
-      <p className="hint">Organizador de reemplazos para tu partido</p>
+      <p className="hint">Organizá tus partidos, reemplazos y gastos</p>
     </div>
   )
 }

@@ -441,6 +441,25 @@ export function deleteEventTemplate(id: string): void {
 
 // ---------- Expenses & Settlements ----------
 
+/** Picks the next `count` upcoming (non-cancelled) events for a template from `fromDate`, generating new ones from its recurrence if not enough exist yet. */
+export function getUpcomingTemplateEventIds(templateId: string, fromDate: string, count: number): string[] {
+  const template = getData().eventTemplates.find((t) => t.id === templateId)
+  if (!template) return []
+
+  function upcoming(): Event[] {
+    return getData()
+      .events.filter((e) => e.templateId === templateId && e.status !== 'cancelled' && e.date >= fromDate)
+      .sort((a, b) => a.date.localeCompare(b.date))
+  }
+
+  if (upcoming().length < count && template.recurrence) {
+    generateRecurringEvents(templateId, { count })
+  }
+  return upcoming()
+    .slice(0, count)
+    .map((e) => e.id)
+}
+
 export function addExpense(input: Omit<Expense, 'id'>): string {
   const id = newId()
   update((data) => ({

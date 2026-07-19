@@ -1,4 +1,4 @@
-import type { AppData, Contact, Event, Invitation, Round } from '../types'
+import type { AppData, Contact, Event, EventTemplate, Expense, Invitation, Round } from '../types'
 import { getSportConfig } from './sports'
 
 export function getContact(data: AppData, contactId: string): Contact | undefined {
@@ -88,4 +88,59 @@ export function getAttentionCount(data: AppData): number {
     if (pending) ids.add(event.id)
   }
   return ids.size
+}
+
+/**
+ * The balance pool an Expense belongs to: a recurring series never crosses into another series
+ * (Padel lunes vs Padel viernes), and a one-off event tied to no template is its own isolated pool.
+ * A single-event Expense whose Event belongs to a template resolves to that template's pool too,
+ * since it's still a cost of that same running series.
+ */
+export function getExpenseGroupKey(data: AppData, expense: Expense): string {
+  if (expense.eventTemplateId) return `template:${expense.eventTemplateId}`
+  if (expense.eventId) {
+    const event = data.events.find((e) => e.id === expense.eventId)
+    if (event?.templateId) return `template:${event.templateId}`
+    return `event:${expense.eventId}`
+  }
+  return 'standalone'
+}
+
+export interface ExpenseGroup {
+  key: string
+  label: string
+  sublabel: string
+}
+
+/** Every distinct balance pool that has at least one Expense, newest activity first. */
+export function listExpenseGroups(data: AppData): ExpenseGroup[] {
+  const keys = new Set(data.expenses.map((e) => getExpenseGroupKey(data, e)))
+  const groups: ExpenseGroup[] = []
+  for (const key of keys) {
+    if (key.startsWith('template:')) {
+      const template = data.eventTemplates.find((t) => t.id === key.slice('template:'.length))
+      groups.push({
+        key,
+        label: template?.name ?? 'Serie eliminada',
+        sublabel: template ? getSportConfig(template.sportId).name : '',
+      })
+    } else if (key.startsWith('event:')) {
+      const event = data.events.find((e) => e.id === key.slice('event:'.length))
+      groups.push({
+        key,
+        label: event ? `${getSportConfig(event.sportId).name} · ${event.date}` : 'Partido eliminado',
+        sublabel: event?.club ?? '',
+      })
+    } else {
+      groups.push({ key: 'standalone', label: 'Gastos sueltos', sublabel: 'Sin evento ni serie asociada' })
+    }
+  }
+  return groups
+}
+
+/** Resolves the actual roster to split an event's slice of an abono among — falls back to the template's core group if the Event was removed. */
+export function getEventRosterForBalance(data: AppData, eventId: string, template?: EventTemplate): string[] {
+  const event = data.events.find((e) => e.id === eventId)
+  if (event) return event.confirmedContactIds
+  return template?.defaultConfirmedContactIds ?? []
 }

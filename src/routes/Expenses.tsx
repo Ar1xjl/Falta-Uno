@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppData } from '../data/store'
-import { getContact } from '../data/selectors'
+import { getContact, getExpenseGroupKey, listExpenseGroups, type ExpenseGroup } from '../data/selectors'
 import { addSettlement, deleteExpense } from '../data/actions'
 import { computeBalances, simplifyDebts, type SettleSuggestion } from '../lib/balances'
 import type { AppData } from '../types'
@@ -10,9 +10,33 @@ import PageHeader from '../components/PageHeader'
 export default function Expenses() {
   const data = useAppData()
   const navigate = useNavigate()
+  const groups = listExpenseGroups(data)
+  const [groupKey, setGroupKey] = useState<string | undefined>(groups[0]?.key)
   const [tab, setTab] = useState<'gastos' | 'balances'>('gastos')
 
-  const balances = computeBalances(data)
+  const activeGroup = groups.find((g) => g.key === groupKey) ?? groups[0]
+
+  if (groups.length === 0) {
+    return (
+      <div className="flex flex-col">
+        <PageHeader
+          title="Gastos"
+          trailing={
+            <button onClick={() => navigate('/expenses/new')} className="btn btn-primary">
+              + Nuevo gasto
+            </button>
+          }
+        />
+        <div className="p-4">
+          <p className="empty-state">
+            Todavía no cargaste gastos. Agregalos desde un evento o una serie para empezar a llevar la cuenta.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  const balances = activeGroup ? computeBalances(data, activeGroup.key) : new Map<string, number>()
   const suggestions = simplifyDebts(balances)
 
   return (
@@ -27,6 +51,8 @@ export default function Expenses() {
       />
 
       <div className="flex flex-col gap-3 p-4">
+        <GroupPicker groups={groups} activeKey={activeGroup?.key} onSelect={setGroupKey} />
+
         <div className="pill-group">
           <button onClick={() => setTab('gastos')} className={`pill-btn ${tab === 'gastos' ? 'active' : ''}`}>
             Gastos
@@ -36,27 +62,55 @@ export default function Expenses() {
           </button>
         </div>
 
-        {tab === 'gastos' ? (
-          <ExpenseList data={data} />
-        ) : (
-          <BalancesView data={data} balances={balances} suggestions={suggestions} />
-        )}
+        {activeGroup &&
+          (tab === 'gastos' ? (
+            <ExpenseList data={data} groupKey={activeGroup.key} />
+          ) : (
+            <BalancesView data={data} groupKey={activeGroup.key} balances={balances} suggestions={suggestions} />
+          ))}
       </div>
     </div>
   )
 }
 
-function ExpenseList({ data }: { data: AppData }) {
-  const expenses = [...data.expenses].sort((a, b) => b.date.localeCompare(a.date))
+function GroupPicker({
+  groups,
+  activeKey,
+  onSelect,
+}: {
+  groups: ExpenseGroup[]
+  activeKey?: string
+  onSelect: (key: string) => void
+}) {
+  if (groups.length <= 1) return null
+  return (
+    <select value={activeKey} onChange={(e) => onSelect(e.target.value)}>
+      {groups.map((g) => (
+        <option key={g.key} value={g.key}>
+          {g.label}
+          {g.sublabel ? ` · ${g.sublabel}` : ''}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+function ExpenseList({ data, groupKey }: { data: AppData; groupKey: string }) {
+  const expenses = data.expenses
+    .filter((e) => getExpenseGroupKey(data, e) === groupKey)
+    .sort((a, b) => b.date.localeCompare(a.date))
 
   if (expenses.length === 0) {
-    return <p className="empty-state">Todavía no cargaste gastos.</p>
+    return <p className="empty-state">Todavía no hay gastos en esta serie.</p>
   }
 
   return (
     <div className="flex flex-col gap-2">
       {expenses.map((e) => {
         const payer = getContact(data, e.paidByContactId)
+        const coverage = e.coveredEventIds
+          ? `Abono · alcanza ${e.coveredEventIds.length} evento${e.coveredEventIds.length === 1 ? '' : 's'}`
+          : `Dividido entre ${e.splitContactIds?.length ?? 0} persona${(e.splitContactIds?.length ?? 0) === 1 ? '' : 's'}`
         return (
           <div key={e.id} className="card flex flex-col gap-1">
             <div className="flex items-center justify-between">
@@ -66,9 +120,7 @@ function ExpenseList({ data }: { data: AppData }) {
             <span className="text-muted text-sm">
               Pagó {payer?.name ?? '—'} · {e.date}
             </span>
-            <span className="hint">
-              Dividido entre {e.splitContactIds.length} persona{e.splitContactIds.length === 1 ? '' : 's'}
-            </span>
+            <span className="hint">{coverage}</span>
             <button
               onClick={() => {
                 if (confirm('¿Eliminar este gasto?')) deleteExpense(e.id)
@@ -86,10 +138,12 @@ function ExpenseList({ data }: { data: AppData }) {
 
 function BalancesView({
   data,
+  groupKey,
   balances,
   suggestions,
 }: {
   data: AppData
+  groupKey: string
   balances: Map<string, number>
   suggestions: SettleSuggestion[]
 }) {
@@ -125,7 +179,7 @@ function BalancesView({
           <p className="card-title mb-0">Para saldar</p>
           <div className="mt-2 flex flex-col gap-2">
             {suggestions.map((s, i) => (
-              <SettleSuggestionRow key={i} suggestion={s} data={data} />
+              <SettleSuggestionRow key={i} suggestion={s} data={data} groupKey={groupKey} />
             ))}
           </div>
         </div>
@@ -134,7 +188,15 @@ function BalancesView({
   )
 }
 
-function SettleSuggestionRow({ suggestion, data }: { suggestion: SettleSuggestion; data: AppData }) {
+function SettleSuggestionRow({
+  suggestion,
+  data,
+  groupKey,
+}: {
+  suggestion: SettleSuggestion
+  data: AppData
+  groupKey: string
+}) {
   const from = getContact(data, suggestion.fromContactId)
   const to = getContact(data, suggestion.toContactId)
   const [copied, setCopied] = useState(false)
@@ -150,6 +212,7 @@ function SettleSuggestionRow({ suggestion, data }: { suggestion: SettleSuggestio
   function handleMarkPaid() {
     if (!confirm(`¿Marcar como pagado el $${suggestion.amount.toFixed(0)} de ${from?.name} a ${to?.name}?`)) return
     addSettlement({
+      groupKey,
       fromContactId: suggestion.fromContactId,
       toContactId: suggestion.toContactId,
       amount: suggestion.amount,
