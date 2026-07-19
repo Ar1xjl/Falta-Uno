@@ -31,6 +31,7 @@ export default function NewExpense() {
   const [participants, setParticipants] = useState<string[]>(event?.confirmedContactIds ?? [])
   const [eventCount, setEventCount] = useState(4)
   const [error, setError] = useState('')
+  const [participantsOpen, setParticipantsOpen] = useState(!event)
 
   function updateItem(index: number, patch: Partial<LineItem>) {
     setItems((prev) => prev.map((it, i) => (i === index ? { ...it, ...patch } : it)))
@@ -168,26 +169,42 @@ export default function NewExpense() {
 
         {!template && (
           <div>
-            <p className="section-label mb-2">¿Entre quiénes se divide?</p>
-            <div className="flex flex-col gap-1">
-              {data.contacts.map((c) => (
-                <label key={c.id} className="list-row">
-                  <input type="checkbox" checked={participants.includes(c.id)} onChange={() => toggleParticipant(c.id)} />
-                  <span className="text-sm text-ink">
-                    {c.name}
-                    {c.isMe ? ' (vos)' : ''}
-                  </span>
-                </label>
-              ))}
-            </div>
+            <button
+              type="button"
+              onClick={() => setParticipantsOpen((o) => !o)}
+              className="section-label mb-2 flex w-full items-center justify-between"
+            >
+              <span>
+                ¿Entre quiénes se divide? ({participants.length})
+              </span>
+              <span>{participantsOpen ? '▾' : '▸'}</span>
+            </button>
+            {participantsOpen && (
+              <div className="flex flex-col gap-1">
+                {data.contacts.map((c) => (
+                  <label key={c.id} className="list-row">
+                    <input type="checkbox" checked={participants.includes(c.id)} onChange={() => toggleParticipant(c.id)} />
+                    <span className="text-sm text-ink">
+                      {c.name}
+                      {c.isMe ? ' (vos)' : ''}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         {error && <p className="text-danger text-sm">{error}</p>}
 
-        <button type="submit" className="btn btn-primary mt-2 py-3 text-base">
-          Guardar
-        </button>
+        <div className="mt-2 flex gap-2">
+          <button type="button" onClick={() => navigate(-1)} className="btn btn-ghost flex-1 py-3 text-base">
+            Cancelar
+          </button>
+          <button type="submit" className="btn btn-primary flex-1 py-3 text-base">
+            Guardar
+          </button>
+        </div>
       </form>
     </div>
   )

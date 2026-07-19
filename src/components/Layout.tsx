@@ -18,7 +18,7 @@ export default function Layout() {
   const attentionCount = getAttentionCount(data)
 
   return (
-    <div className="mx-auto flex h-full max-w-md flex-col bg-bg">
+    <div className="flex h-full flex-col bg-bg">
       <Banner />
       <nav className="tab-bar flex w-full">
         {TABS.map((tab) => (

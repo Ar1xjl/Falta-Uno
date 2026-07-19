@@ -3,6 +3,7 @@ import { useAppData } from './data/store'
 import { getMeContact } from './data/selectors'
 import Onboarding from './components/Onboarding'
 import Layout from './components/Layout'
+import SidePanel, { SPORT_MOCKUPS } from './components/SidePanel'
 import Home from './routes/Home'
 import Events from './routes/Events'
 import Contacts from './routes/Contacts'
@@ -18,23 +19,31 @@ function App() {
   const data = useAppData()
   const me = getMeContact(data)
 
-  if (!me) return <Onboarding />
-
   return (
-    <Routes>
-      <Route element={<Layout />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/events" element={<Events />} />
-        <Route path="/contacts" element={<Contacts />} />
-        <Route path="/templates" element={<Templates />} />
-        <Route path="/history" element={<History />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/expenses" element={<Expenses />} />
-      </Route>
-      <Route path="/events/new" element={<CreateEvent />} />
-      <Route path="/events/:eventId" element={<EventDetail />} />
-      <Route path="/expenses/new" element={<NewExpense />} />
-    </Routes>
+    <div className="app-shell">
+      <SidePanel items={[SPORT_MOCKUPS[0], SPORT_MOCKUPS[2]]} />
+      <div className="phone-frame">
+        {!me ? (
+          <Onboarding />
+        ) : (
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/events" element={<Events />} />
+              <Route path="/contacts" element={<Contacts />} />
+              <Route path="/templates" element={<Templates />} />
+              <Route path="/history" element={<History />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/expenses" element={<Expenses />} />
+            </Route>
+            <Route path="/events/new" element={<CreateEvent />} />
+            <Route path="/events/:eventId" element={<EventDetail />} />
+            <Route path="/expenses/new" element={<NewExpense />} />
+          </Routes>
+        )}
+      </div>
+      <SidePanel items={[SPORT_MOCKUPS[1], SPORT_MOCKUPS[3]]} />
+    </div>
   )
 }
 

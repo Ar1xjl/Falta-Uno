@@ -81,7 +81,7 @@ export default function EventDetail() {
         {event.status === 'upcoming' && (
           <div className="flex gap-2">
             <button onClick={() => downloadICS(event)} className="btn btn-ghost flex-1">
-              📅 Agendar (+recordatorio)
+              📅 Agendar
             </button>
             <a
               href={buildMapsLink(event.club)}
@@ -91,6 +91,9 @@ export default function EventDetail() {
             >
               📍 Cómo llegar
             </a>
+            <button onClick={() => navigate(`/expenses/new?eventId=${event.id}`)} className="btn btn-ghost flex-1">
+              💰 Gasto
+            </button>
           </div>
         )}
 
@@ -165,9 +168,6 @@ export default function EventDetail() {
 
         {event.status === 'upcoming' && (
           <section className="flex flex-col gap-2 border-t pt-4" style={{ borderColor: 'var(--color-line)' }}>
-            <button onClick={() => navigate(`/expenses/new?eventId=${event.id}`)} className="btn btn-ghost">
-              💰 Agregar gasto
-            </button>
             <button onClick={() => markEventCompleted(event.id)} className="btn btn-ghost active">
               Marcar como jugado
             </button>
