@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAppData } from '../data/store'
 import { getContact, getExpenseGroupKey, listExpenseGroups, type ExpenseGroup } from '../data/selectors'
 import { addSettlement, deleteExpense } from '../data/actions'
-import { computeBalances, simplifyDebts, type SettleSuggestion } from '../lib/balances'
+import { computeBalances, computeTotalBalances, simplifyDebts, type SettleSuggestion } from '../lib/balances'
 import type { AppData } from '../types'
 import PageHeader from '../components/PageHeader'
 
@@ -11,10 +11,9 @@ export default function Expenses() {
   const data = useAppData()
   const navigate = useNavigate()
   const groups = listExpenseGroups(data)
-  const [groupKey, setGroupKey] = useState<string | undefined>(groups[0]?.key)
   const [tab, setTab] = useState<'gastos' | 'balances'>('gastos')
-
-  const activeGroup = groups.find((g) => g.key === groupKey) ?? groups[0]
+  const [groupKey, setGroupKey] = useState<string | undefined>(() => (groups.length === 1 ? groups[0].key : undefined))
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   if (groups.length === 0) {
     return (
@@ -36,8 +35,9 @@ export default function Expenses() {
     )
   }
 
-  const balances = activeGroup ? computeBalances(data, activeGroup.key) : new Map<string, number>()
-  const suggestions = simplifyDebts(balances)
+  const activeGroup = groupKey ? groups.find((g) => g.key === groupKey) : undefined
+  const balances = groupKey ? computeBalances(data, groupKey) : computeTotalBalances(data, groups.map((g) => g.key))
+  const suggestions = groupKey ? simplifyDebts(balances) : []
 
   return (
     <div className="flex flex-col">
@@ -51,8 +51,6 @@ export default function Expenses() {
       />
 
       <div className="flex flex-col gap-3 p-4">
-        <GroupPicker groups={groups} activeKey={activeGroup?.key} onSelect={setGroupKey} />
-
         <div className="pill-group">
           <button onClick={() => setTab('gastos')} className={`pill-btn ${tab === 'gastos' ? 'active' : ''}`}>
             Gastos
@@ -62,12 +60,24 @@ export default function Expenses() {
           </button>
         </div>
 
-        {activeGroup &&
-          (tab === 'gastos' ? (
-            <ExpenseList data={data} groupKey={activeGroup.key} />
-          ) : (
-            <BalancesView data={data} groupKey={activeGroup.key} balances={balances} suggestions={suggestions} />
-          ))}
+        {groups.length > 1 && (
+          <GroupPicker
+            groups={groups}
+            activeGroup={activeGroup}
+            open={pickerOpen}
+            onToggle={() => setPickerOpen((o) => !o)}
+            onSelect={(key) => {
+              setGroupKey(key)
+              setPickerOpen(false)
+            }}
+          />
+        )}
+
+        {tab === 'gastos' ? (
+          <ExpenseList data={data} groupKey={groupKey} />
+        ) : (
+          <BalancesView data={data} groupKey={groupKey} balances={balances} suggestions={suggestions} />
+        )}
       </div>
     </div>
   )
@@ -75,37 +85,63 @@ export default function Expenses() {
 
 function GroupPicker({
   groups,
-  activeKey,
+  activeGroup,
+  open,
+  onToggle,
   onSelect,
 }: {
   groups: ExpenseGroup[]
-  activeKey?: string
-  onSelect: (key: string) => void
+  activeGroup?: ExpenseGroup
+  open: boolean
+  onToggle: () => void
+  onSelect: (key: string | undefined) => void
 }) {
-  if (groups.length <= 1) return null
   return (
-    <select value={activeKey} onChange={(e) => onSelect(e.target.value)}>
-      {groups.map((g) => (
-        <option key={g.key} value={g.key}>
-          {g.label}
-          {g.sublabel ? ` · ${g.sublabel}` : ''}
-        </option>
-      ))}
-    </select>
+    <div>
+      <button type="button" onClick={onToggle} className="section-label flex w-full items-center justify-between">
+        <span>{activeGroup ? `${activeGroup.label}${activeGroup.sublabel ? ` · ${activeGroup.sublabel}` : ''}` : 'Todas las series y eventos (total)'}</span>
+        <span>{open ? '▾' : '▸'}</span>
+      </button>
+      {open && (
+        <div className="mt-2 flex flex-col gap-1">
+          <button
+            type="button"
+            onClick={() => onSelect(undefined)}
+            className={`list-row justify-between ${!activeGroup ? 'text-brand font-semibold' : ''}`}
+          >
+            <span>Ver todo (total)</span>
+          </button>
+          {groups.map((g) => (
+            <button
+              key={g.key}
+              type="button"
+              onClick={() => onSelect(g.key)}
+              className={`list-row justify-between ${activeGroup?.key === g.key ? 'text-brand font-semibold' : ''}`}
+            >
+              <span>{g.label}</span>
+              <span className="hint">{g.sublabel}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
 
-function ExpenseList({ data, groupKey }: { data: AppData; groupKey: string }) {
+function ExpenseList({ data, groupKey }: { data: AppData; groupKey?: string }) {
   const expenses = data.expenses
-    .filter((e) => getExpenseGroupKey(data, e) === groupKey)
+    .filter((e) => !groupKey || getExpenseGroupKey(data, e) === groupKey)
     .sort((a, b) => b.date.localeCompare(a.date))
 
   if (expenses.length === 0) {
-    return <p className="empty-state">Todavía no hay gastos en esta serie.</p>
+    return <p className="empty-state">Todavía no hay gastos {groupKey ? 'en esta serie' : 'cargados'}.</p>
   }
+
+  const total = expenses.reduce((sum, e) => sum + e.amount, 0)
 
   return (
     <div className="flex flex-col gap-2">
+      <p className="hint">Total: ${total.toLocaleString('es-AR')}</p>
       {expenses.map((e) => {
         const payer = getContact(data, e.paidByContactId)
         const coverage = e.coveredEventIds
@@ -143,7 +179,7 @@ function BalancesView({
   suggestions,
 }: {
   data: AppData
-  groupKey: string
+  groupKey?: string
   balances: Map<string, number>
   suggestions: SettleSuggestion[]
 }) {
@@ -154,7 +190,7 @@ function BalancesView({
   return (
     <div className="flex flex-col gap-4">
       <div className="card">
-        <p className="card-title mb-0">Balance por persona</p>
+        <p className="card-title mb-0">{groupKey ? 'Balance por persona' : 'Balance total por persona'}</p>
         <div className="mt-2 flex flex-col gap-1">
           {entries.length === 0 ? (
             <p className="hint">Todo saldado.</p>
@@ -172,9 +208,14 @@ function BalancesView({
             })
           )}
         </div>
+        {!groupKey && entries.length > 0 && (
+          <p className="hint mt-2">
+            Es la suma de todas las series y eventos. Para ver a quién pagarle en concreto, elegí una serie o evento arriba.
+          </p>
+        )}
       </div>
 
-      {suggestions.length > 0 && (
+      {groupKey && suggestions.length > 0 && (
         <div className="card">
           <p className="card-title mb-0">Para saldar</p>
           <div className="mt-2 flex flex-col gap-2">

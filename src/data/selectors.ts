@@ -55,9 +55,15 @@ export function getEligibleContactsForEvent(data: AppData, eventId: string, even
   return data.contacts.filter((c) => !c.isMe && !confirmed.has(c.id) && !invited.has(c.id))
 }
 
+/** An Event whose date has already gone by, regardless of whether the organizer ever marked it played — moves it to Historial automatically (rule 13). */
+export function isPastEvent(event: Event): boolean {
+  const today = new Date().toISOString().slice(0, 10)
+  return event.date < today
+}
+
 export function getUpcomingEventsSorted(data: AppData): Event[] {
   return data.events
-    .filter((e) => e.status === 'upcoming')
+    .filter((e) => e.status === 'upcoming' && !isPastEvent(e))
     .sort((a, b) => {
       const aOpen = getVacancies(a) > 0
       const bOpen = getVacancies(b) > 0
@@ -68,7 +74,7 @@ export function getUpcomingEventsSorted(data: AppData): Event[] {
 
 export function getHistoryEvents(data: AppData): Event[] {
   return data.events
-    .filter((e) => e.status === 'completed' || e.status === 'cancelled')
+    .filter((e) => e.status === 'completed' || e.status === 'cancelled' || (e.status === 'upcoming' && isPastEvent(e)))
     .sort((a, b) => `${b.date}T${b.time}`.localeCompare(`${a.date}T${a.time}`))
 }
 
@@ -81,7 +87,7 @@ export function isAcceptLocked(event: Event): boolean {
 export function getAttentionCount(data: AppData): number {
   const ids = new Set<string>()
   for (const event of data.events) {
-    if (event.status !== 'upcoming') continue
+    if (event.status !== 'upcoming' || isPastEvent(event)) continue
     const round = getActiveRound(data, event.id)
     if (!round) continue
     const pending = getInvitationsForRound(data, round.id).some((i) => i.status === 'invited')

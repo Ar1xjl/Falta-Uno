@@ -48,6 +48,22 @@ export function computeBalances(data: AppData, groupKey: string): Map<string, nu
   return balances
 }
 
+/**
+ * Combined net balance per contact across every bucket (see `computeBalances`) — a quick "who's up,
+ * who's down overall" glance. Deliberately not used to drive settle-suggestions: two opposite debts in
+ * different buckets (e.g. Tomi owes Juan for Golf, Juan owes Tomi for Padel balls) can net out here in a
+ * way that hides the two real, separately-owed debts. Always drill into a single bucket to actually settle.
+ */
+export function computeTotalBalances(data: AppData, groupKeys: string[]): Map<string, number> {
+  const total = new Map<string, number>()
+  for (const key of groupKeys) {
+    for (const [contactId, amount] of computeBalances(data, key)) {
+      total.set(contactId, (total.get(contactId) ?? 0) + amount)
+    }
+  }
+  return total
+}
+
 export interface SettleSuggestion {
   fromContactId: string
   toContactId: string

@@ -23,7 +23,9 @@ export default function History() {
               <button key={event.id} onClick={() => navigate(`/events/${event.id}`)} className="card flex flex-col gap-0.5 text-left">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-ink">{sport.name}</span>
-                  <span className="badge-neutral">{event.status === 'completed' ? 'Jugado' : 'Cancelado'}</span>
+                  <span className="badge-neutral">
+                    {event.status === 'completed' ? 'Jugado' : event.status === 'cancelled' ? 'Cancelado' : 'Pasado'}
+                  </span>
                 </div>
                 <span className="text-muted text-sm">
                   {event.club} · {event.date} {event.time}hs
