@@ -29,9 +29,11 @@ export default function NewExpense() {
   const [items, setItems] = useState<LineItem[]>([emptyItem(meId ?? '')])
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [participants, setParticipants] = useState<string[]>(event?.confirmedContactIds ?? [])
-  const [eventCount, setEventCount] = useState(4)
+  const [eventCountInput, setEventCountInput] = useState('4')
   const [error, setError] = useState('')
   const [participantsOpen, setParticipantsOpen] = useState(!event)
+
+  const eventCount = Math.min(52, Math.max(1, Number(eventCountInput) || 1))
 
   function updateItem(index: number, patch: Partial<LineItem>) {
     setItems((prev) => prev.map((it, i) => (i === index ? { ...it, ...patch } : it)))
@@ -56,12 +58,7 @@ export default function NewExpense() {
       setError('Cargá al menos un gasto con descripción, monto y quién pagó.')
       return
     }
-    if (template) {
-      if (eventCount < 1) {
-        setError('El abono tiene que alcanzar al menos 1 evento.')
-        return
-      }
-    } else if (participants.length === 0) {
+    if (!template && participants.length === 0) {
       setError('Elegí al menos un participante para dividir el gasto.')
       return
     }
@@ -116,8 +113,8 @@ export default function NewExpense() {
               type="number"
               min={1}
               max={52}
-              value={eventCount}
-              onChange={(e) => setEventCount(Number(e.target.value) || 1)}
+              value={eventCountInput}
+              onChange={(e) => setEventCountInput(e.target.value)}
             />
             <p className="hint mt-1">
               Se divide en partes iguales entre los próximos {eventCount} evento{eventCount === 1 ? '' : 's'} de esta

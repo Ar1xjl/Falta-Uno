@@ -78,11 +78,12 @@ export default function Templates() {
 
 function GenerateRecurringControls({ template }: { template: EventTemplate }) {
   const [mode, setMode] = useState<'count' | 'until'>('count')
-  const [count, setCount] = useState(6)
+  const [countInput, setCountInput] = useState('6')
   const [untilDate, setUntilDate] = useState('')
   const [message, setMessage] = useState('')
 
   function handleGenerate() {
+    const count = Math.min(52, Math.max(1, Number(countInput) || 1))
     const created =
       mode === 'count'
         ? generateRecurringEvents(template.id, { count })
@@ -107,8 +108,8 @@ function GenerateRecurringControls({ template }: { template: EventTemplate }) {
             min={1}
             max={52}
             className="w-20"
-            value={count}
-            onChange={(e) => setCount(Number(e.target.value) || 1)}
+            value={countInput}
+            onChange={(e) => setCountInput(e.target.value)}
           />
         ) : (
           <input type="date" className="flex-1" value={untilDate} onChange={(e) => setUntilDate(e.target.value)} />
