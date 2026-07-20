@@ -15,7 +15,7 @@ export default function Contacts() {
   const [importing, setImporting] = useState(false)
   const [importMessage, setImportMessage] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const others = data.contacts.filter((c) => !c.isMe)
+  const others = data.contacts.filter((c) => !c.isMe).sort((a, b) => a.name.localeCompare(b.name))
 
   function addImported(picked: Array<{ name: string; phone: string }>) {
     const existingPhones = new Set(data.contacts.map((c) => c.phone))
