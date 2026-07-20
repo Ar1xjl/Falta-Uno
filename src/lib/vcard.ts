@@ -3,6 +3,66 @@ export interface ParsedContact {
   phone: string
 }
 
+export interface ExportableContact {
+  name: string
+  phone: string
+  note?: string
+}
+
+function escapeVCardText(text: string): string {
+  return text.replace(/\\/g, '\\\\').replace(/,/g, '\\,').replace(/;/g, '\\;').replace(/\n/g, '\\n')
+}
+
+/** Builds a single .vcf file with one VCARD entry per contact — the same universal format the app already imports. */
+export function buildVCard(contacts: ExportableContact[]): string {
+  return contacts
+    .map((c) => {
+      const lines = ['BEGIN:VCARD', 'VERSION:3.0', `FN:${escapeVCardText(c.name)}`, `TEL:${c.phone}`]
+      if (c.note) lines.push(`NOTE:${escapeVCardText(c.note)}`)
+      lines.push('END:VCARD')
+      return lines.join('\r\n')
+    })
+    .join('\r\n')
+}
+
+type ShareResult = 'shared' | 'downloaded' | 'cancelled'
+
+/**
+ * Shares the .vcf via the native OS share sheet (WhatsApp included) when the Web Share API supports
+ * file sharing — Android Chrome and iOS Safari 15+. Falls back to a plain download everywhere else,
+ * so the user can attach the file manually from their Downloads.
+ */
+export async function shareOrDownloadVCard(contacts: ExportableContact[], filename: string): Promise<ShareResult> {
+  const vcf = buildVCard(contacts)
+  const file = new File([vcf], filename, { type: 'text/vcard' })
+
+  const nav = navigator as Navigator & {
+    canShare?: (data: { files: File[] }) => boolean
+    share?: (data: ShareData) => Promise<void>
+  }
+
+  if (nav.share && nav.canShare?.({ files: [file] })) {
+    try {
+      await nav.share({ files: [file], title: 'Contactos FaltaUno' })
+      return 'shared'
+    } catch (err) {
+      if ((err as Error)?.name === 'AbortError') return 'cancelled'
+      // Real failure (not a user cancel) — fall through to the download fallback below.
+    }
+  }
+
+  const blob = new Blob([vcf], { type: 'text/vcard' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+  return 'downloaded'
+}
+
 /** Parses one or more vCard (.vcf) contacts — the standard export format from iOS/Android/Google Contacts. */
 export function parseVCard(text: string): ParsedContact[] {
   const unfolded = text.replace(/\r\n/g, '\n').replace(/\n[ \t]/g, '')

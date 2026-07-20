@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { useAppData } from '../data/store'
 import { addContact, deleteContact, updateContact } from '../data/actions'
 import { isContactPickerSupported, pickDeviceContacts } from '../lib/contactPicker'
-import { parseVCard } from '../lib/vcard'
+import { parseVCard, shareOrDownloadVCard } from '../lib/vcard'
 import { SPORT_TAGS } from '../data/sports'
 import type { Contact } from '../types'
 import PageHeader from '../components/PageHeader'
@@ -90,6 +90,8 @@ export default function Contacts() {
         </div>
 
         {importMessage && <p className="hint">{importMessage}</p>}
+
+        {others.length > 0 && <ExportPanel contacts={others} />}
 
         {adding && <ContactForm onDone={() => setAdding(false)} />}
 
@@ -187,6 +189,92 @@ function ImportHelp() {
               </div>
             </div>
           )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ExportPanel({ contacts }: { contacts: Contact[] }) {
+  const [open, setOpen] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>(() => contacts.map((c) => c.id))
+  const [message, setMessage] = useState('')
+
+  function toggleOne(id: string) {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  function selectTag(tagId: string) {
+    const taggedIds = contacts.filter((c) => c.sports?.includes(tagId)).map((c) => c.id)
+    setSelectedIds((prev) => Array.from(new Set([...prev, ...taggedIds])))
+  }
+
+  async function handleExport() {
+    const selected = contacts.filter((c) => selectedIds.includes(c.id))
+    if (selected.length === 0) return
+    setMessage('')
+    const result = await shareOrDownloadVCard(
+      selected.map((c) => ({ name: c.name, phone: c.phone, note: c.note })),
+      'contactos-faltauno.vcf',
+    )
+    if (result === 'downloaded') {
+      setMessage('Se descargó contactos-faltauno.vcf — compartilo por WhatsApp adjuntando el archivo.')
+    } else if (result === 'shared') {
+      setMessage('¡Listo!')
+    }
+  }
+
+  return (
+    <div className="card flex flex-col gap-3">
+      <button type="button" onClick={() => setOpen((o) => !o)} className="flex w-full items-center justify-between">
+        <div className="text-left">
+          <p className="text-sm font-semibold text-ink">Exportar contactos</p>
+          <p className="hint">Compartí tu lista por WhatsApp para que un amigo la importe de una.</p>
+        </div>
+        <span>{open ? '▾' : '▸'}</span>
+      </button>
+
+      {open && (
+        <div className="flex flex-col gap-3">
+          <div>
+            <p className="hint mb-1">Elegir por deporte</p>
+            <div className="flex flex-wrap gap-2">
+              {SPORT_TAGS.map((tag) => (
+                <button key={tag.id} type="button" onClick={() => selectTag(tag.id)} className="tag-toggle">
+                  {tag.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button type="button" onClick={() => setSelectedIds(contacts.map((c) => c.id))} className="text-brand text-sm font-semibold">
+              Seleccionar todos
+            </button>
+            <button type="button" onClick={() => setSelectedIds([])} className="text-muted text-sm font-semibold">
+              Ninguno
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            {contacts.map((c) => (
+              <label key={c.id} className="list-row">
+                <input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => toggleOne(c.id)} />
+                <span className="text-sm text-ink">{c.name}</span>
+              </label>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={selectedIds.length === 0}
+            className="btn btn-primary disabled:opacity-40"
+          >
+            Exportar ({selectedIds.length})
+          </button>
+
+          {message && <p className="hint">{message}</p>}
         </div>
       )}
     </div>
