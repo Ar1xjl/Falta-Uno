@@ -10,6 +10,8 @@ import PageHeader from '../components/PageHeader'
 export default function Contacts() {
   const data = useAppData()
   const [adding, setAdding] = useState(false)
+  const [toolsOpen, setToolsOpen] = useState(false)
+  const [toolsTab, setToolsTab] = useState<'importar' | 'exportar'>('importar')
   const [importing, setImporting] = useState(false)
   const [importMessage, setImportMessage] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -55,11 +57,9 @@ export default function Contacts() {
         title="Contactos"
         trailing={
           <div className="flex gap-2">
-            {isContactPickerSupported() && (
-              <button onClick={handlePickerImport} disabled={importing} className="btn btn-ghost">
-                {importing ? 'Importando…' : 'Importar'}
-              </button>
-            )}
+            <button onClick={() => setToolsOpen((o) => !o)} className="btn btn-ghost">
+              Importar / Exportar
+            </button>
             <button onClick={() => setAdding(true)} className="btn btn-primary">
               + Agregar
             </button>
@@ -68,30 +68,49 @@ export default function Contacts() {
       />
 
       <div className="flex flex-col gap-3 p-4">
-        <div className="card flex flex-col gap-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-ink">Importar desde un archivo (.vcf)</p>
-              <p className="hint">Exportá tus contactos como vCard y subí el archivo acá.</p>
+        {toolsOpen && (
+          <div className="card flex flex-col gap-3">
+            <div className="pill-group">
+              <button onClick={() => setToolsTab('importar')} className={`pill-btn ${toolsTab === 'importar' ? 'active' : ''}`}>
+                Importar
+              </button>
+              <button onClick={() => setToolsTab('exportar')} className={`pill-btn ${toolsTab === 'exportar' ? 'active' : ''}`}>
+                Exportar
+              </button>
             </div>
-            <button onClick={() => fileInputRef.current?.click()} className="btn btn-ghost shrink-0">
-              Elegir archivo
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".vcf,text/vcard,text/x-vcard"
-              multiple
-              className="hidden"
-              onChange={handleFileImport}
-            />
+
+            {toolsTab === 'importar' ? (
+              <div className="flex flex-col gap-3">
+                {isContactPickerSupported() && (
+                  <button onClick={handlePickerImport} disabled={importing} className="btn btn-ghost">
+                    {importing ? 'Importando…' : 'Importar desde contactos del dispositivo'}
+                  </button>
+                )}
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-ink">Importar desde un archivo (.vcf)</p>
+                    <p className="hint">Exportá tus contactos como vCard y subí el archivo acá.</p>
+                  </div>
+                  <button onClick={() => fileInputRef.current?.click()} className="btn btn-ghost shrink-0">
+                    Elegir archivo
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".vcf,text/vcard,text/x-vcard"
+                    multiple
+                    className="hidden"
+                    onChange={handleFileImport}
+                  />
+                </div>
+                <ImportHelp />
+                {importMessage && <p className="hint">{importMessage}</p>}
+              </div>
+            ) : (
+              <ExportTab contacts={others} />
+            )}
           </div>
-          <ImportHelp />
-        </div>
-
-        {importMessage && <p className="hint">{importMessage}</p>}
-
-        {others.length > 0 && <ExportPanel contacts={others} />}
+        )}
 
         {adding && <ContactForm onDone={() => setAdding(false)} />}
 
@@ -195,8 +214,7 @@ function ImportHelp() {
   )
 }
 
-function ExportPanel({ contacts }: { contacts: Contact[] }) {
-  const [open, setOpen] = useState(false)
+function ExportTab({ contacts }: { contacts: Contact[] }) {
   const [selectedIds, setSelectedIds] = useState<string[]>(() => contacts.map((c) => c.id))
   const [message, setMessage] = useState('')
 
@@ -224,59 +242,53 @@ function ExportPanel({ contacts }: { contacts: Contact[] }) {
     }
   }
 
+  if (contacts.length === 0) {
+    return <p className="empty-state">Todavía no cargaste contactos para exportar.</p>
+  }
+
   return (
-    <div className="card flex flex-col gap-3">
-      <button type="button" onClick={() => setOpen((o) => !o)} className="flex w-full items-center justify-between">
-        <div className="text-left">
-          <p className="text-sm font-semibold text-ink">Exportar contactos</p>
-          <p className="hint">Compartí tu lista por WhatsApp para que un amigo la importe de una.</p>
+    <div className="flex flex-col gap-3">
+      <p className="hint">Compartí tu lista por WhatsApp para que un amigo la importe de una.</p>
+
+      <div>
+        <p className="hint mb-1">Elegir por deporte</p>
+        <div className="flex flex-wrap gap-2">
+          {SPORT_TAGS.map((tag) => (
+            <button key={tag.id} type="button" onClick={() => selectTag(tag.id)} className="tag-toggle">
+              {tag.label}
+            </button>
+          ))}
         </div>
-        <span>{open ? '▾' : '▸'}</span>
+      </div>
+
+      <div className="flex gap-3">
+        <button type="button" onClick={() => setSelectedIds(contacts.map((c) => c.id))} className="text-brand text-sm font-semibold">
+          Seleccionar todos
+        </button>
+        <button type="button" onClick={() => setSelectedIds([])} className="text-muted text-sm font-semibold">
+          Ninguno
+        </button>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        {contacts.map((c) => (
+          <label key={c.id} className="list-row">
+            <input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => toggleOne(c.id)} />
+            <span className="text-sm text-ink">{c.name}</span>
+          </label>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={handleExport}
+        disabled={selectedIds.length === 0}
+        className="btn btn-primary disabled:opacity-40"
+      >
+        Exportar ({selectedIds.length})
       </button>
 
-      {open && (
-        <div className="flex flex-col gap-3">
-          <div>
-            <p className="hint mb-1">Elegir por deporte</p>
-            <div className="flex flex-wrap gap-2">
-              {SPORT_TAGS.map((tag) => (
-                <button key={tag.id} type="button" onClick={() => selectTag(tag.id)} className="tag-toggle">
-                  {tag.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex gap-3">
-            <button type="button" onClick={() => setSelectedIds(contacts.map((c) => c.id))} className="text-brand text-sm font-semibold">
-              Seleccionar todos
-            </button>
-            <button type="button" onClick={() => setSelectedIds([])} className="text-muted text-sm font-semibold">
-              Ninguno
-            </button>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            {contacts.map((c) => (
-              <label key={c.id} className="list-row">
-                <input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => toggleOne(c.id)} />
-                <span className="text-sm text-ink">{c.name}</span>
-              </label>
-            ))}
-          </div>
-
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={selectedIds.length === 0}
-            className="btn btn-primary disabled:opacity-40"
-          >
-            Exportar ({selectedIds.length})
-          </button>
-
-          {message && <p className="hint">{message}</p>}
-        </div>
-      )}
+      {message && <p className="hint">{message}</p>}
     </div>
   )
 }
