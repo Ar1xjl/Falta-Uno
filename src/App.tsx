@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom'
+import { Route, Routes, useLocation } from 'react-router-dom'
 import { useAppData } from './data/store'
 import { getMeContact } from './data/selectors'
 import Onboarding from './components/Onboarding'
@@ -14,10 +14,30 @@ import CreateEvent from './routes/CreateEvent'
 import EventDetail from './routes/EventDetail'
 import Expenses from './routes/Expenses'
 import NewExpense from './routes/NewExpense'
+import AuthTest from './routes/AuthTest'
+import RoomTest from './routes/RoomTest'
+
+const DEV_ROUTES: Record<string, () => React.JSX.Element> = {
+  '/dev/auth-test': AuthTest,
+  '/dev/room-test': RoomTest,
+}
 
 function App() {
   const data = useAppData()
   const me = getMeContact(data)
+  const location = useLocation()
+
+  // Rutas de desarrollo para probar la sincronización con Supabase sin pasar por el onboarding local.
+  const DevRoute = DEV_ROUTES[location.pathname]
+  if (DevRoute) {
+    return (
+      <div className="app-shell">
+        <div className="phone-frame">
+          <DevRoute />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="app-shell">

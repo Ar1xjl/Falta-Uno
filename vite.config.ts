@@ -5,6 +5,11 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  server: {
+    // Permite probar el dev server desde afuera (ej. túnel de localtunnel al celular)
+    // sin exponer allowedHosts: true de más — solo ese dominio.
+    allowedHosts: ['.loca.lt', '.trycloudflare.com'],
+  },
   plugins: [
     react(),
     tailwindcss(),
