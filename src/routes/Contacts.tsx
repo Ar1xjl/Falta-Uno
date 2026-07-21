@@ -57,8 +57,8 @@ export default function Contacts() {
         title="Contactos"
         trailing={
           <div className="flex gap-2">
-            <button onClick={() => setToolsOpen((o) => !o)} className="btn btn-ghost">
-              Importar / Exportar
+            <button onClick={() => setToolsOpen((o) => !o)} className={`btn btn-ghost ${toolsOpen ? 'active' : ''}`}>
+              Importar
             </button>
             <button onClick={() => setAdding(true)} className="btn btn-primary">
               + Agregar
@@ -214,12 +214,49 @@ function ImportHelp() {
   )
 }
 
+function ExportHelp() {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div>
+      <button onClick={() => setOpen((o) => !o)} className="text-brand text-sm font-semibold">
+        {open ? 'Ocultar instrucciones' : '¿Cómo hago esto?'}
+      </button>
+
+      {open && (
+        <div className="mt-3">
+          <ol className="hint list-decimal space-y-1 pl-4">
+            <li>Elegí los contactos (individualmente, por deporte, o todos) y tocá "Exportar".</li>
+            <li>
+              Si tu celular lo soporta, se abre directo el menú para compartir del sistema — elegí{' '}
+              <strong>WhatsApp</strong> y el chat, listo.
+            </li>
+            <li>
+              Si en cambio se descarga un archivo <span style={{ fontFamily: 'monospace' }}>contactos-faltauno.vcf</span>,
+              abrí WhatsApp, entrá al chat, tocá el clip 📎 → <strong>Documento</strong> (o "Archivo"), y buscalo en
+              Descargas.
+            </li>
+          </ol>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function ExportTab({ contacts }: { contacts: Contact[] }) {
   const [selectedIds, setSelectedIds] = useState<string[]>(() => contacts.map((c) => c.id))
+  const [search, setSearch] = useState('')
   const [message, setMessage] = useState('')
+
+  const allSelected = contacts.length > 0 && selectedIds.length === contacts.length
+  const filtered = contacts.filter((c) => c.name.toLowerCase().includes(search.trim().toLowerCase()))
 
   function toggleOne(id: string) {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds(allSelected ? [] : contacts.map((c) => c.id))
   }
 
   function selectTag(tagId: string) {
@@ -261,22 +298,24 @@ function ExportTab({ contacts }: { contacts: Contact[] }) {
         </div>
       </div>
 
-      <div className="flex gap-3">
-        <button type="button" onClick={() => setSelectedIds(contacts.map((c) => c.id))} className="text-brand text-sm font-semibold">
-          Seleccionar todos
-        </button>
-        <button type="button" onClick={() => setSelectedIds([])} className="text-muted text-sm font-semibold">
-          Ninguno
-        </button>
-      </div>
+      <label className="list-row">
+        <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} />
+        <span className="text-sm font-semibold text-ink">Seleccionar todos</span>
+      </label>
+
+      <input placeholder="Buscar contacto..." value={search} onChange={(e) => setSearch(e.target.value)} />
 
       <div className="flex flex-col gap-1">
-        {contacts.map((c) => (
-          <label key={c.id} className="list-row">
-            <input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => toggleOne(c.id)} />
-            <span className="text-sm text-ink">{c.name}</span>
-          </label>
-        ))}
+        {filtered.length === 0 ? (
+          <p className="hint">Ningún contacto coincide con "{search}".</p>
+        ) : (
+          filtered.map((c) => (
+            <label key={c.id} className="list-row">
+              <input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => toggleOne(c.id)} />
+              <span className="text-sm text-ink">{c.name}</span>
+            </label>
+          ))
+        )}
       </div>
 
       <button
@@ -289,6 +328,8 @@ function ExportTab({ contacts }: { contacts: Contact[] }) {
       </button>
 
       {message && <p className="hint">{message}</p>}
+
+      <ExportHelp />
     </div>
   )
 }
