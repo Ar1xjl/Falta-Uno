@@ -16,6 +16,7 @@ export default function Contacts() {
   const [importMessage, setImportMessage] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const others = data.contacts.filter((c) => !c.isMe).sort((a, b) => a.name.localeCompare(b.name))
+  const me = data.contacts.find((c) => c.isMe)
 
   function addImported(picked: Array<{ name: string; phone: string }>) {
     const existingPhones = new Set(data.contacts.map((c) => c.phone))
@@ -107,7 +108,7 @@ export default function Contacts() {
                 {importMessage && <p className="hint">{importMessage}</p>}
               </div>
             ) : (
-              <ExportTab contacts={others} />
+              <ExportTab contacts={others} me={me} />
             )}
           </div>
         )}
@@ -243,29 +244,30 @@ function ExportHelp() {
   )
 }
 
-function ExportTab({ contacts }: { contacts: Contact[] }) {
-  const [selectedIds, setSelectedIds] = useState<string[]>(() => contacts.map((c) => c.id))
+function ExportTab({ contacts, me }: { contacts: Contact[]; me?: Contact }) {
+  const exportable = me ? [me, ...contacts] : contacts
+  const [selectedIds, setSelectedIds] = useState<string[]>(() => exportable.map((c) => c.id))
   const [search, setSearch] = useState('')
   const [message, setMessage] = useState('')
 
-  const allSelected = contacts.length > 0 && selectedIds.length === contacts.length
-  const filtered = contacts.filter((c) => c.name.toLowerCase().includes(search.trim().toLowerCase()))
+  const allSelected = exportable.length > 0 && selectedIds.length === exportable.length
+  const filtered = exportable.filter((c) => c.name.toLowerCase().includes(search.trim().toLowerCase()))
 
   function toggleOne(id: string) {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   }
 
   function toggleSelectAll() {
-    setSelectedIds(allSelected ? [] : contacts.map((c) => c.id))
+    setSelectedIds(allSelected ? [] : exportable.map((c) => c.id))
   }
 
   function selectTag(tagId: string) {
-    const taggedIds = contacts.filter((c) => c.sports?.includes(tagId)).map((c) => c.id)
+    const taggedIds = exportable.filter((c) => c.sports?.includes(tagId)).map((c) => c.id)
     setSelectedIds((prev) => Array.from(new Set([...prev, ...taggedIds])))
   }
 
   async function handleExport() {
-    const selected = contacts.filter((c) => selectedIds.includes(c.id))
+    const selected = exportable.filter((c) => selectedIds.includes(c.id))
     if (selected.length === 0) return
     setMessage('')
     const result = await shareOrDownloadVCard(
@@ -273,18 +275,22 @@ function ExportTab({ contacts }: { contacts: Contact[] }) {
       'contactos-faltauno.vcf',
     )
     if (result === 'downloaded') {
-      setMessage('Se descargó contactos-faltauno.vcf — compartilo por WhatsApp adjuntando el archivo.')
+      setMessage(
+        'Se descargó contactos-faltauno.vcf y copiamos un mensaje con instrucciones al portapapeles — compartilo por WhatsApp junto con el archivo.',
+      )
     } else if (result === 'shared') {
       setMessage('¡Listo!')
     }
   }
 
-  if (contacts.length === 0) {
+  if (exportable.length === 0) {
     return <p className="empty-state">Todavía no cargaste contactos para exportar.</p>
   }
 
   return (
     <div className="flex flex-col gap-3">
+      <ExportHelp />
+
       <p className="hint">Compartí tu lista por WhatsApp para que un amigo la importe de una.</p>
 
       <div>
@@ -312,7 +318,10 @@ function ExportTab({ contacts }: { contacts: Contact[] }) {
           filtered.map((c) => (
             <label key={c.id} className="list-row">
               <input type="checkbox" checked={selectedIds.includes(c.id)} onChange={() => toggleOne(c.id)} />
-              <span className="text-sm text-ink">{c.name}</span>
+              <span className="text-sm text-ink">
+                {c.name}
+                {c.isMe ? ' (vos)' : ''}
+              </span>
             </label>
           ))
         )}
@@ -328,8 +337,6 @@ function ExportTab({ contacts }: { contacts: Contact[] }) {
       </button>
 
       {message && <p className="hint">{message}</p>}
-
-      <ExportHelp />
     </div>
   )
 }

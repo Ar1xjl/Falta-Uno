@@ -27,14 +27,33 @@ export function buildVCard(contacts: ExportableContact[]): string {
 
 type ShareResult = 'shared' | 'downloaded' | 'cancelled'
 
+/** Step-by-step instructions for whoever receives the exported .vcf, so they know what to do with it even if they've never used the app. */
+export function buildExportMessage(): string {
+  const url = window.location.origin
+  return [
+    'Te paso mis contactos de FaltaUno!! 📋',
+    '',
+    '1. Descargá el archivo adjunto (contactos-faltauno.vcf).',
+    `2. Entrá a ${url} (o abrí la app si ya la tenés instalada).`,
+    '3. Andá a Contactos → tocá "Importar" → "Elegir archivo", y seleccioná el que descargaste.',
+  ].join('\n')
+}
+
 /**
  * Shares the .vcf via the native OS share sheet (WhatsApp included) when the Web Share API supports
  * file sharing — Android Chrome and iOS Safari 15+. Falls back to a plain download everywhere else,
- * so the user can attach the file manually from their Downloads.
+ * copying the accompanying instructions to the clipboard so they can be pasted alongside the file.
+ *
+ * The shared file is deliberately typed as `text/plain`, not `text/vcard`/`text/x-vcard`: WhatsApp (and
+ * Android's share sheet in general) special-cases the vCard MIME type by unpacking a multi-contact .vcf
+ * into separate "Contact" bubbles instead of sending it as one attachment — exactly the multi-contact
+ * case this export is built for. A generic text type sidesteps that and arrives as a single file, which
+ * is also what a manual download + "attach as document" in WhatsApp already does reliably.
  */
 export async function shareOrDownloadVCard(contacts: ExportableContact[], filename: string): Promise<ShareResult> {
   const vcf = buildVCard(contacts)
-  const file = new File([vcf], filename, { type: 'text/vcard' })
+  const file = new File([vcf], filename, { type: 'text/plain' })
+  const message = buildExportMessage()
 
   const nav = navigator as Navigator & {
     canShare?: (data: { files: File[] }) => boolean
@@ -43,7 +62,7 @@ export async function shareOrDownloadVCard(contacts: ExportableContact[], filena
 
   if (nav.share && nav.canShare?.({ files: [file] })) {
     try {
-      await nav.share({ files: [file], title: 'Contactos FaltaUno' })
+      await nav.share({ files: [file], title: 'Contactos FaltaUno', text: message })
       return 'shared'
     } catch (err) {
       if ((err as Error)?.name === 'AbortError') return 'cancelled'
@@ -51,7 +70,7 @@ export async function shareOrDownloadVCard(contacts: ExportableContact[], filena
     }
   }
 
-  const blob = new Blob([vcf], { type: 'text/vcard' })
+  const blob = new Blob([vcf], { type: 'text/plain' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -60,6 +79,13 @@ export async function shareOrDownloadVCard(contacts: ExportableContact[], filena
   a.click()
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
+
+  try {
+    await navigator.clipboard.writeText(message)
+  } catch {
+    // Clipboard access denied/unavailable — the user can still type the instructions themselves.
+  }
+
   return 'downloaded'
 }
 
