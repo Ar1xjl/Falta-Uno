@@ -116,7 +116,7 @@ function MessageTemplateForm({ template, onDone }: { template?: MessageTemplate;
     <form onSubmit={handleSubmit} className="card flex flex-col gap-2">
       <input placeholder="Nombre (ej. Casual, Urgente)" value={name} onChange={(e) => setName(e.target.value)} />
       <textarea
-        placeholder="Texto con {sport} {club} {court} {date} {time}"
+        placeholder="Texto con {name} {sport} {club} {court} {date} {time}"
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={3}

@@ -61,7 +61,7 @@ export default function InvitationRow({
         {locked && (
           <button
             onClick={() => {
-              const message = fillMessageTemplate(CUPO_CUBIERTO_TEXT, event)
+              const message = fillMessageTemplate(CUPO_CUBIERTO_TEXT, event, contact.name)
               window.open(buildWaMeLink(contact.phone, message), '_blank')
               markCupoCubierto(invitation.id)
             }}

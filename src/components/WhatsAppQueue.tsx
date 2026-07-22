@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAppData } from '../data/store'
 import { getContact, getInvitationsForRound, isEventFull } from '../data/selectors'
 import { buildWaMeLink, DEFAULT_MESSAGE_TEMPLATE_TEXT, fillMessageTemplate } from '../lib/whatsapp'
@@ -14,22 +14,31 @@ export default function WhatsAppQueue({
 }) {
   const data = useAppData()
   const [index, setIndex] = useState(0)
+  const [messageText, setMessageText] = useState('')
 
   const event = data.events.find((e) => e.id === eventId)
   const round = data.rounds.find((r) => r.id === roundId)
-  if (!event || !round) return null
 
-  const pending = getInvitationsForRound(data, roundId).filter(
-    (i) => i.status === 'invited' && !isEventFull(event),
-  )
+  const pending = event
+    ? getInvitationsForRound(data, roundId).filter((i) => i.status === 'invited' && !isEventFull(event))
+    : []
 
-  const template = round.messageTemplateId
+  const template = round?.messageTemplateId
     ? data.messageTemplates.find((t) => t.id === round.messageTemplateId)
     : undefined
-  const messageText = fillMessageTemplate(template?.text ?? DEFAULT_MESSAGE_TEMPLATE_TEXT, event)
 
   const current = pending[index]
   const contact = current ? getContact(data, current.contactId) : undefined
+
+  // Recalcula el texto (con el nombre de esta persona) cada vez que avanzamos a la próxima —
+  // así cada quien recibe su propio saludo, y lo que edita uno no se arrastra al siguiente.
+  useEffect(() => {
+    if (!event || !contact) return
+    setMessageText(fillMessageTemplate(template?.text ?? DEFAULT_MESSAGE_TEMPLATE_TEXT, event, contact.name))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index, contact?.id])
+
+  if (!event || !round) return null
 
   return (
     <div className="fixed inset-0 z-20 flex items-end justify-center bg-black/40">
@@ -49,9 +58,13 @@ export default function WhatsAppQueue({
               {index + 1} de {pending.length}
             </p>
             <p className="text-base font-semibold text-ink">{contact.name}</p>
-            <p className="rounded-[7px] p-3 text-sm text-ink" style={{ background: 'var(--color-bg)' }}>
-              {messageText}
-            </p>
+            <textarea
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              rows={4}
+              className="rounded-[7px] p-3 text-sm text-ink"
+              style={{ background: 'var(--color-bg)' }}
+            />
             <a href={buildWaMeLink(contact.phone, messageText)} target="_blank" rel="noreferrer" className="btn btn-primary text-center">
               Abrir WhatsApp
             </a>
