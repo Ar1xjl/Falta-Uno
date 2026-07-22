@@ -1,14 +1,12 @@
 import type { Event } from '../types'
-import { getSportConfig } from '../data/sports'
 
 export const DEFAULT_MESSAGE_TEMPLATE_TEXT =
   'Hola {name}! ¿Te copás a jugar {sport} el {date} {time}hs en {club}?'
 
-export function fillMessageTemplate(text: string, event: Event, contactName?: string): string {
-  const sport = getSportConfig(event.sportId)
+export function fillMessageTemplate(text: string, event: Event, sportName: string, contactName?: string): string {
   return text
     .replaceAll('{name}', contactName ?? '')
-    .replaceAll('{sport}', sport.name)
+    .replaceAll('{sport}', sportName)
     .replaceAll('{club}', event.club)
     .replaceAll('{court}', event.court ?? '')
     .replaceAll('{date}', event.date)

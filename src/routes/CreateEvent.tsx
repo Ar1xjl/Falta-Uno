@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppData } from '../data/store'
 import { createEvent, createEventFromTemplate } from '../data/actions'
-import { SPORTS } from '../data/sports'
+import { getAllSports } from '../data/sports'
 import PageHeader from '../components/PageHeader'
 
 export default function CreateEvent() {
@@ -89,7 +89,9 @@ function FromTemplateForm() {
 function FromScratchForm() {
   const data = useAppData()
   const navigate = useNavigate()
-  const [sportId, setSportId] = useState(SPORTS[0].id)
+  const sports = getAllSports(data.customSports)
+  const [sportId, setSportId] = useState('')
+  const [requiredPlayers, setRequiredPlayers] = useState(4)
   const [club, setClub] = useState('')
   const [court, setCourt] = useState('')
   const [date, setDate] = useState('')
@@ -103,10 +105,16 @@ function FromScratchForm() {
     setConfirmedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   }
 
+  function handleSportChange(id: string) {
+    setSportId(id)
+    const sport = sports.find((s) => s.id === id)
+    if (sport) setRequiredPlayers(sport.defaultRequiredPlayers)
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!club.trim() || !date || !time) {
-      setError('Completá club, fecha y hora antes de crear el evento.')
+    if (!sportId || !club.trim() || !date || !time || requiredPlayers < 1) {
+      setError('Completá deporte, club, fecha y hora antes de crear el evento.')
       return
     }
     setError('')
@@ -116,6 +124,7 @@ function FromScratchForm() {
       court: court.trim() || undefined,
       date,
       time,
+      requiredPlayers,
       confirmedContactIds: confirmedIds,
     })
     navigate(`/events/${id}`)
@@ -123,13 +132,25 @@ function FromScratchForm() {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-3">
-      <select value={sportId} onChange={(e) => setSportId(e.target.value)}>
-        {SPORTS.map((s) => (
+      <select value={sportId} onChange={(e) => handleSportChange(e.target.value)}>
+        <option value="" disabled>
+          Deporte
+        </option>
+        {sports.map((s) => (
           <option key={s.id} value={s.id}>
-            {s.name} ({s.requiredPlayers})
+            {s.name}
           </option>
         ))}
       </select>
+      <div className="flex flex-1 flex-col gap-1">
+        <p className="hint">Cantidad de jugadores</p>
+        <input
+          type="number"
+          min={1}
+          value={requiredPlayers}
+          onChange={(e) => setRequiredPlayers(Math.max(1, Number(e.target.value) || 1))}
+        />
+      </div>
       <input placeholder="Club" value={club} onChange={(e) => setClub(e.target.value)} />
       <input placeholder="Cancha (opcional)" value={court} onChange={(e) => setCourt(e.target.value)} />
       <div className="flex gap-3">

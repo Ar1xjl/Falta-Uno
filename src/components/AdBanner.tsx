@@ -12,25 +12,13 @@ const SPORT_BANNERS: Record<string, BannerContent> = {
     sub: 'Paletas y pelotas de Padel — hasta 20% OFF',
     bg: 'linear-gradient(135deg, #16a34a, #15803d)',
   },
-  tennis_singles: {
+  tenis: {
     emoji: '🎾',
     headline: 'Prepará tu próximo partido',
     sub: 'Encordado de raquetas con descuento',
     bg: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
   },
-  tennis_doubles: {
-    emoji: '🎾',
-    headline: 'Prepará tu próximo partido',
-    sub: 'Encordado de raquetas con descuento',
-    bg: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-  },
-  football_5: {
-    emoji: '⚽',
-    headline: '¿Listo para el partido?',
-    sub: 'Botines y pelotas de Fútbol — envío gratis',
-    bg: 'linear-gradient(135deg, #ea580c, #c2410c)',
-  },
-  football_11: {
+  futbol: {
     emoji: '⚽',
     headline: '¿Listo para el partido?',
     sub: 'Botines y pelotas de Fútbol — envío gratis',

@@ -52,7 +52,7 @@ export default function EventDetail() {
     )
   }
 
-  const sport = getSportConfig(event.sportId)
+  const sport = getSportConfig(event.sportId, data.customSports)
   const vacancies = getVacancies(event)
   const confirmed = getConfirmedContacts(data, event)
   const rounds = getRoundsForEvent(data, event.id)
@@ -89,7 +89,7 @@ export default function EventDetail() {
 
         {event.status === 'upcoming' && (
           <div className="flex gap-2">
-            <button onClick={() => downloadICS(event)} className="btn btn-ghost flex-1">
+            <button onClick={() => downloadICS(event, sport)} className="btn btn-ghost flex-1">
               📅 Agendar
             </button>
             <a
@@ -109,7 +109,7 @@ export default function EventDetail() {
         <section>
           <div className="mb-2 flex items-center justify-between">
             <h2 className="card-title mb-0">
-              Confirmados ({confirmed.length}/{sport.requiredPlayers})
+              Confirmados ({confirmed.length}/{event.requiredPlayers})
             </h2>
             {vacancies > 0 ? (
               <span className="text-xs font-semibold" style={{ color: '#92400e' }}>
@@ -249,6 +249,7 @@ function ShareSection({ event }: { event: Event }) {
         court: event.court,
         date: event.date,
         time: event.time,
+        requiredPlayers: event.requiredPlayers,
       })
       linkEventToShare(event.id, created.id)
 

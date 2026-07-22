@@ -1,7 +1,14 @@
 import { useState } from 'react'
 import { useAppData } from '../data/store'
-import { addMessageTemplate, deleteMessageTemplate, updateContact, updateMessageTemplate } from '../data/actions'
-import type { MessageTemplate } from '../types'
+import {
+  addCustomSport,
+  addMessageTemplate,
+  deleteCustomSport,
+  deleteMessageTemplate,
+  updateContact,
+  updateMessageTemplate,
+} from '../data/actions'
+import type { MessageTemplate, SportConfig } from '../types'
 import { DEFAULT_MESSAGE_TEMPLATE_TEXT } from '../lib/whatsapp'
 import PageHeader from '../components/PageHeader'
 import HowItWorks from '../components/HowItWorks'
@@ -37,6 +44,12 @@ export default function Settings() {
         </section>
 
         <section className="flex flex-col gap-2">
+          <h2 className="card-title mb-0">Mis deportes</h2>
+          <p className="hint">Además de Padel, Tenis, Fútbol y Golf, podés agregar los tuyos.</p>
+          <CustomSportList sports={data.customSports} />
+        </section>
+
+        <section className="flex flex-col gap-2">
           <h2 className="card-title mb-0">Templates de mensaje</h2>
           <p className="hint">
             Si no elegís ninguno al invitar, se usa: “{DEFAULT_MESSAGE_TEMPLATE_TEXT}”
@@ -47,6 +60,73 @@ export default function Settings() {
         <HowItWorks />
       </div>
     </div>
+  )
+}
+
+function CustomSportList({ sports }: { sports: SportConfig[] }) {
+  const [adding, setAdding] = useState(false)
+
+  return (
+    <div className="flex flex-col gap-2">
+      {sports.map((s) => (
+        <div key={s.id} className="card flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-ink">
+            {s.name} <span className="hint font-normal">(sugerido: {s.defaultRequiredPlayers})</span>
+          </p>
+          <button
+            onClick={() => {
+              if (confirm(`¿Eliminar el deporte "${s.name}"?`)) deleteCustomSport(s.id)
+            }}
+            className="text-danger shrink-0 text-sm font-semibold"
+          >
+            Borrar
+          </button>
+        </div>
+      ))}
+
+      {adding ? (
+        <CustomSportForm onDone={() => setAdding(false)} />
+      ) : (
+        <button onClick={() => setAdding(true)} className="btn btn-ghost">
+          + Nuevo deporte
+        </button>
+      )}
+    </div>
+  )
+}
+
+function CustomSportForm({ onDone }: { onDone: () => void }) {
+  const [name, setName] = useState('')
+  const [players, setPlayers] = useState(4)
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!name.trim() || players < 1) return
+    addCustomSport(name.trim(), players)
+    onDone()
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="card flex flex-col gap-2">
+      <input placeholder="Nombre (ej. Vóley)" value={name} onChange={(e) => setName(e.target.value)} />
+      <div className="flex flex-col gap-1">
+        <p className="hint">Cantidad de jugadores sugerida</p>
+        <input
+          type="number"
+          min={1}
+          value={players}
+          onChange={(e) => setPlayers(Math.max(1, Number(e.target.value) || 1))}
+        />
+      </div>
+      <div className="flex gap-2">
+        <button type="submit" className="btn btn-primary flex-1">
+          Guardar
+        </button>
+        <button type="button" onClick={onDone} className="btn btn-ghost flex-1">
+          Cancelar
+        </button>
+      </div>
+    </form>
   )
 }
 

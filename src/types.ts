@@ -1,8 +1,9 @@
 export interface SportConfig {
   id: string
   name: string
-  requiredPlayers: number
-  category: string // coarse tag used to match against Contact.sports, e.g. "tenis" covers both Tenis Singles and Dobles
+  defaultRequiredPlayers: number // solo un valor sugerido al crear un evento/grupo — la cantidad real vive en Event/EventTemplate
+  category: string // coarse tag used to match against Contact.sports
+  custom?: boolean // true para los que el usuario agregó a mano, distinto de los que vienen predefinidos
 }
 
 export interface Contact {
@@ -25,6 +26,7 @@ export interface Event {
   date: string // ISO date "YYYY-MM-DD"
   time: string // "HH:mm"
   confirmedContactIds: string[]
+  requiredPlayers: number
   status: EventStatus
   templateId?: string
   sharedId?: string // id del event_shares en Supabase, si este evento se compartió por link
@@ -80,6 +82,7 @@ export interface EventTemplate {
   sportId: string
   club: string
   court?: string
+  requiredPlayers: number
   defaultConfirmedContactIds: string[]
   defaultRounds: EventTemplateRound[]
   recurrence?: EventTemplateRecurrence
@@ -130,4 +133,5 @@ export interface AppData {
   eventTemplates: EventTemplate[]
   expenses: Expense[]
   settlements: Settlement[]
+  customSports: SportConfig[]
 }

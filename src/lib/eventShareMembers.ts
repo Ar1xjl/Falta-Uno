@@ -15,6 +15,7 @@ export interface EventSharePreview {
   court: string | null
   date: string | null
   time: string | null
+  required_players: number | null
   member_count: number
   confirmed_count: number
   members: { user_id: string; name: string; phone: string | null }[]

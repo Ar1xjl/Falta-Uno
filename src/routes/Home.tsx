@@ -40,7 +40,7 @@ export default function Home() {
         {nextEvent ? (
           <button onClick={() => navigate('/events')} className="flex flex-col gap-1 text-left">
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-ink">{getSportConfig(nextEvent.sportId).name}</span>
+              <span className="font-semibold text-ink">{getSportConfig(nextEvent.sportId, data.customSports).name}</span>
               {getVacancies(nextEvent) > 0 ? (
                 <span className="badge-amber">Vacante abierta</span>
               ) : (
@@ -65,7 +65,7 @@ export default function Home() {
           <p className="card-title mb-0">Rondas esperando respuesta</p>
           <div className="mt-2 flex flex-col gap-1">
             {needsAttention.map(({ event, pending }) => {
-              const sport = getSportConfig(event.sportId)
+              const sport = getSportConfig(event.sportId, data.customSports)
               return (
                 <button
                   key={event.id}

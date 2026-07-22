@@ -71,6 +71,7 @@ export default function JoinInvite({ shareId }: { shareId: string }) {
         court: preview.court ?? undefined,
         date: preview.date!,
         time: preview.time!,
+        requiredPlayers,
         confirmedContactIds: [],
         sharedId: preview.id,
       })
@@ -102,6 +103,7 @@ export default function JoinInvite({ shareId }: { shareId: string }) {
   }
 
   const sport = getSportConfig(preview.sport_id!)
+  const requiredPlayers = preview.required_players ?? sport.defaultRequiredPlayers
 
   return (
     <div className="flex h-full flex-col justify-center gap-4 px-6">
@@ -119,7 +121,7 @@ export default function JoinInvite({ shareId }: { shareId: string }) {
 
         <div>
           <p className="text-sm font-semibold text-ink">
-            Juegan ({preview.confirmed_count}/{sport.requiredPlayers})
+            Juegan ({preview.confirmed_count}/{requiredPlayers})
           </p>
           {preview.members.length === 0 ? (
             <p className="hint">Todavía nadie confirmó.</p>

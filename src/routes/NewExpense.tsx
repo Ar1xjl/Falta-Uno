@@ -98,7 +98,7 @@ export default function NewExpense() {
           <p className="hint">
             Vinculado a{' '}
             {event
-              ? `el evento de ${getSportConfig(event.sportId).name} del ${event.date}`
+              ? `el evento de ${getSportConfig(event.sportId, data.customSports).name} del ${event.date}`
               : `la serie "${template!.name}"`}
             .
           </p>

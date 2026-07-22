@@ -18,7 +18,7 @@ export default function History() {
           <p className="empty-state">Todavía no hay partidos jugados o cancelados.</p>
         ) : (
           events.map((event) => {
-            const sport = getSportConfig(event.sportId)
+            const sport = getSportConfig(event.sportId, data.customSports)
             return (
               <button key={event.id} onClick={() => navigate(`/events/${event.id}`)} className="card flex flex-col gap-0.5 text-left">
                 <div className="flex items-center justify-between">

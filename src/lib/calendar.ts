@@ -1,5 +1,4 @@
-import type { Event } from '../types'
-import { getSportConfig } from '../data/sports'
+import type { Event, SportConfig } from '../types'
 
 const DEFAULT_DURATION_MINUTES: Record<string, number> = {
   padel: 90,
@@ -25,8 +24,7 @@ function escapeICSText(text: string): string {
 }
 
 /** Builds a .ics file with an embedded 1h-before reminder — relies on the OS calendar app's own notifications, not web push. */
-export function buildICS(event: Event): string {
-  const sport = getSportConfig(event.sportId)
+export function buildICS(event: Event, sport: SportConfig): string {
   const start = new Date(`${event.date}T${event.time}:00`)
   const durationMinutes = DEFAULT_DURATION_MINUTES[sport.category] ?? 90
   const end = new Date(start.getTime() + durationMinutes * 60000)
@@ -57,8 +55,8 @@ export function buildICS(event: Event): string {
   return lines.join('\r\n')
 }
 
-export function downloadICS(event: Event): void {
-  const ics = buildICS(event)
+export function downloadICS(event: Event, sport: SportConfig): void {
+  const ics = buildICS(event, sport)
   const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')

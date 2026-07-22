@@ -12,6 +12,7 @@ export interface EventShareRow {
   court: string | null
   date: string | null
   time: string | null
+  required_players: number | null
 }
 
 export interface EventShareDetails {
@@ -20,6 +21,7 @@ export interface EventShareDetails {
   court?: string
   date: string
   time: string
+  requiredPlayers: number
 }
 
 function client() {
@@ -44,6 +46,7 @@ export async function createEventShare(localEventId: string, details: EventShare
       court: details.court ?? null,
       date: details.date,
       time: details.time,
+      required_players: details.requiredPlayers,
     })
     .select()
     .single()

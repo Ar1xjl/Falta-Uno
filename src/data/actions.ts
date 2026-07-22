@@ -65,6 +65,25 @@ export function mergeContactsFromShareMembers(members: { name: string; phone: st
   return added
 }
 
+// ---------- Sports ----------
+
+export function addCustomSport(name: string, defaultRequiredPlayers: number): void {
+  update((data) => {
+    const id = newId()
+    return {
+      ...data,
+      customSports: [
+        ...data.customSports,
+        { id, name, defaultRequiredPlayers, category: id, custom: true },
+      ],
+    }
+  })
+}
+
+export function deleteCustomSport(id: string): void {
+  update((data) => ({ ...data, customSports: data.customSports.filter((s) => s.id !== id) }))
+}
+
 // ---------- Events ----------
 
 export function createEvent(input: {
@@ -73,6 +92,7 @@ export function createEvent(input: {
   court?: string
   date: string
   time: string
+  requiredPlayers: number
   confirmedContactIds: string[]
   templateId?: string
   sharedId?: string
@@ -91,6 +111,7 @@ export function createEvent(input: {
       date: input.date,
       time: input.time,
       confirmedContactIds,
+      requiredPlayers: input.requiredPlayers,
       status: 'upcoming',
       templateId: input.templateId,
       sharedId: input.sharedId,
@@ -121,6 +142,7 @@ export function createEventFromTemplate(templateId: string, date: string, time: 
       date,
       time,
       confirmedContactIds: template.defaultConfirmedContactIds,
+      requiredPlayers: template.requiredPlayers,
       status: 'upcoming',
       templateId: template.id,
     }
@@ -238,6 +260,7 @@ export function saveEventAsTemplate(eventId: string, name: string): void {
       sportId: event.sportId,
       club: event.club,
       court: event.court,
+      requiredPlayers: event.requiredPlayers,
       defaultConfirmedContactIds: event.confirmedContactIds,
       defaultRounds: rounds.map((r) => ({
         order: r.order,

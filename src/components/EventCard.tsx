@@ -2,10 +2,12 @@ import { useNavigate } from 'react-router-dom'
 import type { Event } from '../types'
 import { getSportConfig } from '../data/sports'
 import { getVacancies } from '../data/selectors'
+import { useAppData } from '../data/store'
 
 export default function EventCard({ event }: { event: Event }) {
   const navigate = useNavigate()
-  const sport = getSportConfig(event.sportId)
+  const data = useAppData()
+  const sport = getSportConfig(event.sportId, data.customSports)
   const vacancies = getVacancies(event)
   const hasOpenVacancy = vacancies > 0
 

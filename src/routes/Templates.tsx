@@ -7,7 +7,7 @@ import {
   generateRecurringEvents,
   updateEventTemplate,
 } from '../data/actions'
-import { SPORTS } from '../data/sports'
+import { getAllSports } from '../data/sports'
 import type { EventTemplate, EventTemplateRound } from '../types'
 import PageHeader from '../components/PageHeader'
 
@@ -128,8 +128,10 @@ function TemplateForm({ template, onDone }: { template?: EventTemplate; onDone: 
   const meId = data.contacts.find((c) => c.isMe)?.id
   const others = data.contacts.filter((c) => !c.isMe)
 
+  const sports = getAllSports(data.customSports)
   const [name, setName] = useState(template?.name ?? '')
   const [sportId, setSportId] = useState(template?.sportId ?? '')
+  const [requiredPlayers, setRequiredPlayers] = useState(template?.requiredPlayers ?? 4)
   const [club, setClub] = useState(template?.club ?? '')
   const [court, setCourt] = useState(template?.court ?? '')
   const [confirmedIds, setConfirmedIds] = useState<string[]>(
@@ -139,6 +141,12 @@ function TemplateForm({ template, onDone }: { template?: EventTemplate; onDone: 
   const [isRecurring, setIsRecurring] = useState(Boolean(template?.recurrence))
   const [weekday, setWeekday] = useState(template?.recurrence?.weekday ?? 4)
   const [recurTime, setRecurTime] = useState(template?.recurrence?.time ?? '20:00')
+
+  function handleSportChange(id: string) {
+    setSportId(id)
+    const sport = sports.find((s) => s.id === id)
+    if (sport) setRequiredPlayers(sport.defaultRequiredPlayers)
+  }
 
   function toggleConfirmed(id: string) {
     setConfirmedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
@@ -173,13 +181,14 @@ function TemplateForm({ template, onDone }: { template?: EventTemplate; onDone: 
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim() || !sportId || !club.trim()) return
+    if (!name.trim() || !sportId || !club.trim() || requiredPlayers < 1) return
     const defaultConfirmedContactIds = meId ? [meId, ...confirmedIds] : confirmedIds
     const input = {
       name: name.trim(),
       sportId,
       club: club.trim(),
       court: court.trim() || undefined,
+      requiredPlayers,
       defaultConfirmedContactIds,
       defaultRounds: rounds,
       recurrence: isRecurring ? { weekday, time: recurTime } : undefined,
@@ -205,16 +214,25 @@ function TemplateForm({ template, onDone }: { template?: EventTemplate; onDone: 
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3 p-4">
         <input placeholder="Nombre (ej. Padel jueves)" value={name} onChange={(e) => setName(e.target.value)} />
-        <select value={sportId} onChange={(e) => setSportId(e.target.value)}>
+        <select value={sportId} onChange={(e) => handleSportChange(e.target.value)}>
           <option value="" disabled>
             Deporte
           </option>
-          {SPORTS.map((s) => (
+          {sports.map((s) => (
             <option key={s.id} value={s.id}>
-              {s.name} ({s.requiredPlayers})
+              {s.name}
             </option>
           ))}
         </select>
+        <div className="flex flex-1 flex-col gap-1">
+          <p className="hint">Cantidad de jugadores</p>
+          <input
+            type="number"
+            min={1}
+            value={requiredPlayers}
+            onChange={(e) => setRequiredPlayers(Math.max(1, Number(e.target.value) || 1))}
+          />
+        </div>
         <input placeholder="Club" value={club} onChange={(e) => setClub(e.target.value)} />
         <input placeholder="Cancha (opcional)" value={court} onChange={(e) => setCourt(e.target.value)} />
 

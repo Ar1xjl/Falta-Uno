@@ -10,8 +10,7 @@ export function getMeContact(data: AppData): Contact | undefined {
 }
 
 export function getVacancies(event: Event): number {
-  const sport = getSportConfig(event.sportId)
-  return sport.requiredPlayers - event.confirmedContactIds.length
+  return event.requiredPlayers - event.confirmedContactIds.length
 }
 
 export function isEventFull(event: Event): boolean {
@@ -128,13 +127,13 @@ export function listExpenseGroups(data: AppData): ExpenseGroup[] {
       groups.push({
         key,
         label: template?.name ?? 'Serie eliminada',
-        sublabel: template ? getSportConfig(template.sportId).name : '',
+        sublabel: template ? getSportConfig(template.sportId, data.customSports).name : '',
       })
     } else if (key.startsWith('event:')) {
       const event = data.events.find((e) => e.id === key.slice('event:'.length))
       groups.push({
         key,
-        label: event ? `${getSportConfig(event.sportId).name} · ${event.date}` : 'Partido eliminado',
+        label: event ? `${getSportConfig(event.sportId, data.customSports).name} · ${event.date}` : 'Partido eliminado',
         sublabel: event?.club ?? '',
       })
     } else {

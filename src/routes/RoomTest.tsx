@@ -116,6 +116,7 @@ export default function RoomTest() {
         club: 'Club de prueba',
         date: new Date().toISOString().slice(0, 10),
         time: '20:00',
+        requiredPlayers: 4,
       })
       setRoom(created)
       setShareId(created.id)

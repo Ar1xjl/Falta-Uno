@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAppData } from '../data/store'
 import { getContact, getInvitationsForRound, isEventFull } from '../data/selectors'
+import { getSportConfig } from '../data/sports'
 import { buildWaMeLink, DEFAULT_MESSAGE_TEMPLATE_TEXT, fillMessageTemplate } from '../lib/whatsapp'
 
 export default function WhatsAppQueue({
@@ -34,7 +35,8 @@ export default function WhatsAppQueue({
   // así cada quien recibe su propio saludo, y lo que edita uno no se arrastra al siguiente.
   useEffect(() => {
     if (!event || !contact) return
-    setMessageText(fillMessageTemplate(template?.text ?? DEFAULT_MESSAGE_TEMPLATE_TEXT, event, contact.name))
+    const sportName = getSportConfig(event.sportId, data.customSports).name
+    setMessageText(fillMessageTemplate(template?.text ?? DEFAULT_MESSAGE_TEMPLATE_TEXT, event, sportName, contact.name))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [index, contact?.id])
 
