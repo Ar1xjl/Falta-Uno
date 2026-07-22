@@ -91,7 +91,8 @@ function FromScratchForm() {
   const navigate = useNavigate()
   const sports = getAllSports(data.customSports)
   const [sportId, setSportId] = useState('')
-  const [requiredPlayers, setRequiredPlayers] = useState(4)
+  const [requiredPlayersInput, setRequiredPlayersInput] = useState('4')
+  const requiredPlayers = Math.max(1, Number(requiredPlayersInput) || 1)
   const [club, setClub] = useState('')
   const [court, setCourt] = useState('')
   const [date, setDate] = useState('')
@@ -108,12 +109,12 @@ function FromScratchForm() {
   function handleSportChange(id: string) {
     setSportId(id)
     const sport = sports.find((s) => s.id === id)
-    if (sport) setRequiredPlayers(sport.defaultRequiredPlayers)
+    if (sport) setRequiredPlayersInput(String(sport.defaultRequiredPlayers))
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!sportId || !club.trim() || !date || !time || requiredPlayers < 1) {
+    if (!sportId || !club.trim() || !date || !time) {
       setError('Completá deporte, club, fecha y hora antes de crear el evento.')
       return
     }
@@ -147,8 +148,8 @@ function FromScratchForm() {
         <input
           type="number"
           min={1}
-          value={requiredPlayers}
-          onChange={(e) => setRequiredPlayers(Math.max(1, Number(e.target.value) || 1))}
+          value={requiredPlayersInput}
+          onChange={(e) => setRequiredPlayersInput(e.target.value)}
         />
       </div>
       <input placeholder="Club" value={club} onChange={(e) => setClub(e.target.value)} />

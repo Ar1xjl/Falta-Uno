@@ -131,7 +131,8 @@ function TemplateForm({ template, onDone }: { template?: EventTemplate; onDone: 
   const sports = getAllSports(data.customSports)
   const [name, setName] = useState(template?.name ?? '')
   const [sportId, setSportId] = useState(template?.sportId ?? '')
-  const [requiredPlayers, setRequiredPlayers] = useState(template?.requiredPlayers ?? 4)
+  const [requiredPlayersInput, setRequiredPlayersInput] = useState(String(template?.requiredPlayers ?? 4))
+  const requiredPlayers = Math.max(1, Number(requiredPlayersInput) || 1)
   const [club, setClub] = useState(template?.club ?? '')
   const [court, setCourt] = useState(template?.court ?? '')
   const [confirmedIds, setConfirmedIds] = useState<string[]>(
@@ -145,7 +146,7 @@ function TemplateForm({ template, onDone }: { template?: EventTemplate; onDone: 
   function handleSportChange(id: string) {
     setSportId(id)
     const sport = sports.find((s) => s.id === id)
-    if (sport) setRequiredPlayers(sport.defaultRequiredPlayers)
+    if (sport) setRequiredPlayersInput(String(sport.defaultRequiredPlayers))
   }
 
   function toggleConfirmed(id: string) {
@@ -181,7 +182,7 @@ function TemplateForm({ template, onDone }: { template?: EventTemplate; onDone: 
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim() || !sportId || !club.trim() || requiredPlayers < 1) return
+    if (!name.trim() || !sportId || !club.trim()) return
     const defaultConfirmedContactIds = meId ? [meId, ...confirmedIds] : confirmedIds
     const input = {
       name: name.trim(),
@@ -229,8 +230,8 @@ function TemplateForm({ template, onDone }: { template?: EventTemplate; onDone: 
           <input
             type="number"
             min={1}
-            value={requiredPlayers}
-            onChange={(e) => setRequiredPlayers(Math.max(1, Number(e.target.value) || 1))}
+            value={requiredPlayersInput}
+            onChange={(e) => setRequiredPlayersInput(e.target.value)}
           />
         </div>
         <input placeholder="Club" value={club} onChange={(e) => setClub(e.target.value)} />

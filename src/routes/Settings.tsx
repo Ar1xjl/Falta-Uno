@@ -97,12 +97,12 @@ function CustomSportList({ sports }: { sports: SportConfig[] }) {
 
 function CustomSportForm({ onDone }: { onDone: () => void }) {
   const [name, setName] = useState('')
-  const [players, setPlayers] = useState(4)
+  const [playersInput, setPlayersInput] = useState('4')
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim() || players < 1) return
-    addCustomSport(name.trim(), players)
+    if (!name.trim()) return
+    addCustomSport(name.trim(), Math.max(1, Number(playersInput) || 1))
     onDone()
   }
 
@@ -111,12 +111,7 @@ function CustomSportForm({ onDone }: { onDone: () => void }) {
       <input placeholder="Nombre (ej. Vóley)" value={name} onChange={(e) => setName(e.target.value)} />
       <div className="flex flex-col gap-1">
         <p className="hint">Cantidad de jugadores sugerida</p>
-        <input
-          type="number"
-          min={1}
-          value={players}
-          onChange={(e) => setPlayers(Math.max(1, Number(e.target.value) || 1))}
-        />
+        <input type="number" min={1} value={playersInput} onChange={(e) => setPlayersInput(e.target.value)} />
       </div>
       <div className="flex gap-2">
         <button type="submit" className="btn btn-primary flex-1">
