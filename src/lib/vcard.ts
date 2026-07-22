@@ -63,6 +63,14 @@ export async function shareOrDownloadVCard(contacts: ExportableContact[], filena
   if (nav.share && nav.canShare?.({ files: [file] })) {
     try {
       await nav.share({ files: [file], title: 'Contactos FaltaUno', text: message })
+      // WhatsApp (y el share sheet de Android en general) suele descartar el `text` cuando
+      // también va un archivo adjunto, entregando solo el archivo. Copiamos igual el mensaje
+      // al portapapeles como respaldo, para que se pueda pegar a mano si no llegó solo.
+      try {
+        await navigator.clipboard.writeText(message)
+      } catch {
+        // Clipboard access denied/unavailable — no pasa nada, el share ya se hizo.
+      }
       return 'shared'
     } catch (err) {
       if ((err as Error)?.name === 'AbortError') return 'cancelled'

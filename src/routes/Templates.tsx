@@ -129,7 +129,7 @@ function TemplateForm({ template, onDone }: { template?: EventTemplate; onDone: 
   const others = data.contacts.filter((c) => !c.isMe)
 
   const [name, setName] = useState(template?.name ?? '')
-  const [sportId, setSportId] = useState(template?.sportId ?? SPORTS[0].id)
+  const [sportId, setSportId] = useState(template?.sportId ?? '')
   const [club, setClub] = useState(template?.club ?? '')
   const [court, setCourt] = useState(template?.court ?? '')
   const [confirmedIds, setConfirmedIds] = useState<string[]>(
@@ -173,7 +173,7 @@ function TemplateForm({ template, onDone }: { template?: EventTemplate; onDone: 
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim() || !club.trim()) return
+    if (!name.trim() || !sportId || !club.trim()) return
     const defaultConfirmedContactIds = meId ? [meId, ...confirmedIds] : confirmedIds
     const input = {
       name: name.trim(),
@@ -206,6 +206,9 @@ function TemplateForm({ template, onDone }: { template?: EventTemplate; onDone: 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3 p-4">
         <input placeholder="Nombre (ej. Padel jueves)" value={name} onChange={(e) => setName(e.target.value)} />
         <select value={sportId} onChange={(e) => setSportId(e.target.value)}>
+          <option value="" disabled>
+            Deporte
+          </option>
           {SPORTS.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name} ({s.requiredPlayers})
@@ -222,14 +225,20 @@ function TemplateForm({ template, onDone }: { template?: EventTemplate; onDone: 
           </label>
           {isRecurring && (
             <div className="mt-2 flex gap-2">
-              <select className="flex-1" value={weekday} onChange={(e) => setWeekday(Number(e.target.value))}>
-                {WEEKDAYS.map((w, i) => (
-                  <option key={w} value={i}>
-                    {w}
-                  </option>
-                ))}
-              </select>
-              <input type="time" value={recurTime} onChange={(e) => setRecurTime(e.target.value)} />
+              <div className="flex flex-1 flex-col gap-1">
+                <p className="hint">Día</p>
+                <select className="w-full" value={weekday} onChange={(e) => setWeekday(Number(e.target.value))}>
+                  {WEEKDAYS.map((w, i) => (
+                    <option key={w} value={i}>
+                      {w}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-1 flex-col gap-1">
+                <p className="hint">Hora</p>
+                <input type="time" className="w-full" value={recurTime} onChange={(e) => setRecurTime(e.target.value)} />
+              </div>
             </div>
           )}
         </div>

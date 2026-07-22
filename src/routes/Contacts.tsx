@@ -279,7 +279,9 @@ function ExportTab({ contacts, me }: { contacts: Contact[]; me?: Contact }) {
         'Se descargó contactos-faltauno.vcf y copiamos un mensaje con instrucciones al portapapeles — compartilo por WhatsApp junto con el archivo.',
       )
     } else if (result === 'shared') {
-      setMessage('¡Listo!')
+      setMessage(
+        '¡Listo! Por las dudas copiamos el mensaje con instrucciones al portapapeles también — si no llegó junto con el archivo, pegalo a mano.',
+      )
     }
   }
 

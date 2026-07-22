@@ -68,8 +68,16 @@ function FromTemplateForm() {
           </option>
         ))}
       </select>
-      <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-      <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+      <div className="flex gap-3">
+        <div className="flex flex-1 flex-col gap-1">
+          <p className="hint">Fecha</p>
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </div>
+        <div className="flex flex-1 flex-col gap-1">
+          <p className="hint">Hora</p>
+          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+        </div>
+      </div>
       {error && <p className="text-danger text-sm">{error}</p>}
       <button type="submit" className="btn btn-primary mt-2 py-3 text-base">
         Crear
@@ -125,8 +133,14 @@ function FromScratchForm() {
       <input placeholder="Club" value={club} onChange={(e) => setClub(e.target.value)} />
       <input placeholder="Cancha (opcional)" value={court} onChange={(e) => setCourt(e.target.value)} />
       <div className="flex gap-3">
-        <input type="date" className="flex-1" value={date} onChange={(e) => setDate(e.target.value)} />
-        <input type="time" className="flex-1" value={time} onChange={(e) => setTime(e.target.value)} />
+        <div className="flex flex-1 flex-col gap-1">
+          <p className="hint">Fecha</p>
+          <input type="date" className="w-full" value={date} onChange={(e) => setDate(e.target.value)} />
+        </div>
+        <div className="flex flex-1 flex-col gap-1">
+          <p className="hint">Hora</p>
+          <input type="time" className="w-full" value={time} onChange={(e) => setTime(e.target.value)} />
+        </div>
       </div>
 
       <div>
