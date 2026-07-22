@@ -57,6 +57,7 @@ export function createEvent(input: {
   time: string
   confirmedContactIds: string[]
   templateId?: string
+  sharedId?: string
 }): string {
   const id = newId()
   update((data) => {
@@ -74,10 +75,19 @@ export function createEvent(input: {
       confirmedContactIds,
       status: 'upcoming',
       templateId: input.templateId,
+      sharedId: input.sharedId,
     }
     return { ...data, events: [...data.events, event] }
   })
   return id
+}
+
+/** Ata un evento local ya existente al event_share que se acaba de crear para compartirlo. */
+export function linkEventToShare(eventId: string, sharedId: string): void {
+  update((data) => ({
+    ...data,
+    events: data.events.map((e) => (e.id === eventId ? { ...e, sharedId } : e)),
+  }))
 }
 
 export function createEventFromTemplate(templateId: string, date: string, time: string): string {

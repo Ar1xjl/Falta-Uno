@@ -18,3 +18,8 @@ export function buildWaMeLink(phone: string, message: string): string {
   const digitsOnly = phone.replace(/[^\d]/g, '')
   return `https://wa.me/${digitsOnly}?text=${encodeURIComponent(message)}`
 }
+
+/** Sin número — abre el selector de contacto/chat de WhatsApp en vez de apuntar a uno fijo. */
+export function buildWaMeShareLink(message: string): string {
+  return `https://wa.me/?text=${encodeURIComponent(message)}`
+}

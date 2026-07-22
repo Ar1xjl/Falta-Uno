@@ -7,6 +7,19 @@ export interface EventShareRow {
   member_user_ids: string[]
   confirmed_user_ids: string[]
   created_at: string
+  sport_id: string | null
+  club: string | null
+  court: string | null
+  date: string | null
+  time: string | null
+}
+
+export interface EventShareDetails {
+  sportId: string
+  club: string
+  court?: string
+  date: string
+  time: string
 }
 
 function client() {
@@ -14,7 +27,7 @@ function client() {
   return supabase
 }
 
-export async function createEventShare(localEventId: string): Promise<EventShareRow> {
+export async function createEventShare(localEventId: string, details: EventShareDetails): Promise<EventShareRow> {
   const db = client()
   const { data: userData, error: userError } = await db.auth.getUser()
   if (userError || !userData.user) throw new Error('No hay sesión activa.')
@@ -26,6 +39,11 @@ export async function createEventShare(localEventId: string): Promise<EventShare
       local_event_id: localEventId,
       member_user_ids: [userData.user.id],
       confirmed_user_ids: [],
+      sport_id: details.sportId,
+      club: details.club,
+      court: details.court ?? null,
+      date: details.date,
+      time: details.time,
     })
     .select()
     .single()

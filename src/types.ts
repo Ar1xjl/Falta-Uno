@@ -27,6 +27,7 @@ export interface Event {
   confirmedContactIds: string[]
   status: EventStatus
   templateId?: string
+  sharedId?: string // id del event_shares en Supabase, si este evento se compartió por link
 }
 
 export type RoundStatus = 'pending' | 'active' | 'completed' | 'skipped'

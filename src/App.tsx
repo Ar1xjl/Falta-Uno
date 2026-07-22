@@ -1,7 +1,8 @@
-import { Route, Routes, useLocation } from 'react-router-dom'
+import { Route, Routes, useLocation, useSearchParams } from 'react-router-dom'
 import { useAppData } from './data/store'
 import { getMeContact } from './data/selectors'
 import Onboarding from './components/Onboarding'
+import JoinInvite from './routes/JoinInvite'
 import Layout from './components/Layout'
 import SidePanel, { SPORT_MOCKUPS } from './components/SidePanel'
 import Home from './routes/Home'
@@ -26,6 +27,8 @@ function App() {
   const data = useAppData()
   const me = getMeContact(data)
   const location = useLocation()
+  const [searchParams] = useSearchParams()
+  const inviteId = searchParams.get('invite')
 
   // Rutas de desarrollo para probar la sincronización con Supabase sin pasar por el onboarding local.
   const DevRoute = DEV_ROUTES[location.pathname]
@@ -45,6 +48,8 @@ function App() {
       <div className="phone-frame">
         {!me ? (
           <Onboarding />
+        ) : inviteId ? (
+          <JoinInvite key={inviteId} shareId={inviteId} />
         ) : (
           <Routes>
             <Route element={<Layout />}>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAppData } from '../data/store'
 import {
@@ -15,6 +15,7 @@ import {
   cancelEvent,
   closeActiveRound,
   createRound,
+  linkEventToShare,
   markEventCompleted,
   quickInvite,
   rejoinEvent,
@@ -23,7 +24,13 @@ import {
 } from '../data/actions'
 import { getSportConfig } from '../data/sports'
 import { buildMapsLink, downloadICS } from '../lib/calendar'
-import type { Round } from '../types'
+import { createEventShare, getEventShare, subscribeToEventShare } from '../lib/eventShares'
+import type { EventShareRow } from '../lib/eventShares'
+import { signInWithDeviceKey } from '../lib/pubkeyAuth'
+import { supabase, supabaseEnabled } from '../lib/supabase'
+import { buildWaMeShareLink } from '../lib/whatsapp'
+import { toErrorMessage } from '../lib/errors'
+import type { Event, Round } from '../types'
 import InvitationRow from '../components/InvitationRow'
 import WhatsAppQueue from '../components/WhatsAppQueue'
 import PageHeader from '../components/PageHeader'
@@ -141,6 +148,8 @@ export default function EventDetail() {
           )}
         </section>
 
+        {event.status === 'upcoming' && <ShareSection event={event} />}
+
         {event.status === 'upcoming' && (
           <section className="flex flex-col gap-3">
             <h2 className="card-title mb-0">Rondas de invitación</h2>
@@ -194,6 +203,85 @@ export default function EventDetail() {
         {queueRoundId && <WhatsAppQueue roundId={queueRoundId} eventId={event.id} onClose={() => setQueueRoundId(null)} />}
       </div>
     </div>
+  )
+}
+
+function inviteLink(shareId: string): string {
+  return `${window.location.origin}/?invite=${shareId}`
+}
+
+function ShareSection({ event }: { event: Event }) {
+  const [share, setShare] = useState<EventShareRow | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!event.sharedId || !supabaseEnabled) return
+    let cancelled = false
+    getEventShare(event.sharedId)
+      .then((row) => {
+        if (!cancelled) setShare(row)
+      })
+      .catch(() => {})
+    return subscribeToEventShare(event.sharedId, setShare)
+  }, [event.sharedId])
+
+  if (!supabaseEnabled) return null
+
+  async function handleShare() {
+    setLoading(true)
+    setError(null)
+    try {
+      if (!supabase) throw new Error('Supabase no está configurado.')
+      const { data: userData } = await supabase.auth.getUser()
+      if (!userData.user) await signInWithDeviceKey()
+      const created = await createEventShare(event.id, {
+        sportId: event.sportId,
+        club: event.club,
+        court: event.court,
+        date: event.date,
+        time: event.time,
+      })
+      linkEventToShare(event.id, created.id)
+      setShare(created)
+    } catch (e) {
+      setError(toErrorMessage(e))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <section className="card flex flex-col gap-2">
+      <h2 className="card-title mb-0">Compartir por link</h2>
+      {!event.sharedId ? (
+        <>
+          <p className="hint">
+            Mandale un link a quien ya tenés agendado en WhatsApp — entra directo a este evento, sin
+            pedirle nada más.
+          </p>
+          <button onClick={handleShare} disabled={loading} className="btn btn-primary">
+            {loading ? 'Generando…' : 'Compartir por WhatsApp'}
+          </button>
+        </>
+      ) : (
+        <>
+          <p className="hint">
+            {share?.member_user_ids.length ?? 1} persona{(share?.member_user_ids.length ?? 1) === 1 ? '' : 's'}{' '}
+            entraron por este link.
+          </p>
+          <a
+            className="btn btn-primary text-center"
+            href={buildWaMeShareLink(`Dale que jugamos, sumate acá: ${inviteLink(event.sharedId)}`)}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Invitar por WhatsApp
+          </a>
+        </>
+      )}
+      {error && <p className="text-danger text-sm">{error}</p>}
+    </section>
   )
 }
 

@@ -15,6 +15,8 @@ import {
 import type { EventShareSettlementRow } from '../lib/eventShareSettlements'
 import { simplifyDebts } from '../lib/balances'
 import { signInWithDeviceKey } from '../lib/pubkeyAuth'
+import { buildWaMeShareLink } from '../lib/whatsapp'
+import { toErrorMessage } from '../lib/errors'
 import PageHeader from '../components/PageHeader'
 
 function inviteFromUrl(): string | null {
@@ -53,7 +55,7 @@ export default function RoomTest() {
         const { data: after } = await supabase.auth.getUser()
         setUserId(after.user?.id ?? null)
       } catch (e) {
-        setError(e instanceof Error ? e.message : String(e))
+        setError(toErrorMessage(e))
       } finally {
         setSigningIn(false)
       }
@@ -75,7 +77,7 @@ export default function RoomTest() {
         url.searchParams.delete('invite')
         window.history.replaceState({}, '', url)
       })
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)))
+      .catch((e) => setError(toErrorMessage(e)))
   }, [userId, room])
 
   useEffect(() => {
@@ -85,7 +87,7 @@ export default function RoomTest() {
 
   useEffect(() => {
     if (!room) return
-    listExpenses(room.id).then(setExpenses).catch((e) => setError(e instanceof Error ? e.message : String(e)))
+    listExpenses(room.id).then(setExpenses).catch((e) => setError(toErrorMessage(e)))
     return subscribeToExpenses(room.id, (row) => setExpenses((prev) => [...prev, row]))
   }, [room?.id])
 
@@ -93,7 +95,7 @@ export default function RoomTest() {
     if (!room) return
     listSettlements(room.id)
       .then(setSettlements)
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)))
+      .catch((e) => setError(toErrorMessage(e)))
     return subscribeToSettlements(room.id, (row) => {
       setSettlements((prev) => {
         const idx = prev.findIndex((s) => s.id === row.id)
@@ -108,11 +110,16 @@ export default function RoomTest() {
   async function handleCreate() {
     setError(null)
     try {
-      const created = await createEventShare(crypto.randomUUID())
+      const created = await createEventShare(crypto.randomUUID(), {
+        sportId: 'padel',
+        club: 'Club de prueba',
+        date: new Date().toISOString().slice(0, 10),
+        time: '20:00',
+      })
       setRoom(created)
       setShareId(created.id)
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(toErrorMessage(e))
     }
   }
 
@@ -123,7 +130,7 @@ export default function RoomTest() {
       const joined = await getEventShare(shareId)
       setRoom(joined)
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(toErrorMessage(e))
     }
   }
 
@@ -133,7 +140,7 @@ export default function RoomTest() {
     try {
       await setConfirmed(room.id, next)
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(toErrorMessage(e))
     }
   }
 
@@ -148,7 +155,7 @@ export default function RoomTest() {
       setDescription('')
       setAmount('')
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(toErrorMessage(e))
     }
   }
 
@@ -162,7 +169,7 @@ export default function RoomTest() {
       await proposeSettlement(room.id, settleTo, parsed)
       setSettleAmount('')
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(toErrorMessage(e))
     }
   }
 
@@ -172,7 +179,7 @@ export default function RoomTest() {
       if (decision === 'confirmed') await confirmSettlement(id)
       else await declineSettlement(id)
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(toErrorMessage(e))
     }
   }
 
@@ -222,9 +229,7 @@ export default function RoomTest() {
                 </p>
                 <a
                   className="btn btn-primary text-center"
-                  href={`https://wa.me/?text=${encodeURIComponent(
-                    `Dale que jugamos, sumate acá: ${inviteLink(room.id)}`,
-                  )}`}
+                  href={buildWaMeShareLink(`Dale que jugamos, sumate acá: ${inviteLink(room.id)}`)}
                   target="_blank"
                   rel="noreferrer"
                 >
