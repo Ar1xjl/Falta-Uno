@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useAppData } from '../data/store'
+import { getData, useAppData } from '../data/store'
 import {
   getActiveRound,
   getConfirmedContacts,
@@ -17,6 +17,7 @@ import {
   createRound,
   linkEventToShare,
   markEventCompleted,
+  mergeContactsFromShareMembers,
   quickInvite,
   rejoinEvent,
   removeConfirmedContact,
@@ -24,8 +25,9 @@ import {
 } from '../data/actions'
 import { getSportConfig } from '../data/sports'
 import { buildMapsLink, downloadICS } from '../lib/calendar'
-import { createEventShare, getEventShare, subscribeToEventShare } from '../lib/eventShares'
-import type { EventShareRow } from '../lib/eventShares'
+import { createEventShare } from '../lib/eventShares'
+import { listEventShareMembers, subscribeToEventShareMembers, upsertOwnMemberProfile } from '../lib/eventShareMembers'
+import type { EventShareMemberRow } from '../lib/eventShareMembers'
 import { signInWithDeviceKey } from '../lib/pubkeyAuth'
 import { supabase, supabaseEnabled } from '../lib/supabase'
 import { buildWaMeShareLink } from '../lib/whatsapp'
@@ -211,20 +213,26 @@ function inviteLink(shareId: string): string {
 }
 
 function ShareSection({ event }: { event: Event }) {
-  const [share, setShare] = useState<EventShareRow | null>(null)
+  const [members, setMembers] = useState<EventShareMemberRow[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!event.sharedId || !supabaseEnabled) return
     let cancelled = false
-    getEventShare(event.sharedId)
-      .then((row) => {
-        if (!cancelled) setShare(row)
+    listEventShareMembers(event.sharedId)
+      .then((rows) => {
+        if (!cancelled) setMembers(rows)
       })
       .catch(() => {})
-    return subscribeToEventShare(event.sharedId, setShare)
+    return subscribeToEventShareMembers(event.sharedId, setMembers)
   }, [event.sharedId])
+
+  // Cada vez que cambia la lista de compañeros de sala, agrego a mi agenda a los que no tenía.
+  useEffect(() => {
+    if (members.length === 0) return
+    mergeContactsFromShareMembers(members)
+  }, [members])
 
   if (!supabaseEnabled) return null
 
@@ -243,7 +251,10 @@ function ShareSection({ event }: { event: Event }) {
         time: event.time,
       })
       linkEventToShare(event.id, created.id)
-      setShare(created)
+
+      const me = getData().contacts.find((c) => c.isMe)
+      if (me) await upsertOwnMemberProfile(created.id, me.name, me.phone)
+      setMembers(await listEventShareMembers(created.id))
     } catch (e) {
       setError(toErrorMessage(e))
     } finally {
@@ -267,8 +278,9 @@ function ShareSection({ event }: { event: Event }) {
       ) : (
         <>
           <p className="hint">
-            {share?.member_user_ids.length ?? 1} persona{(share?.member_user_ids.length ?? 1) === 1 ? '' : 's'}{' '}
-            entraron por este link.
+            {members.length === 0
+              ? 'Todavía nadie se sumó por este link.'
+              : `Por este link: ${members.map((m) => m.name).join(', ')}`}
           </p>
           <a
             className="btn btn-primary text-center"

@@ -47,6 +47,24 @@ export function deleteContact(id: string): void {
   })
 }
 
+/** Agrega como contacto nuevo a cada compañero de sala que todavía no esté en mi agenda (por teléfono). */
+export function mergeContactsFromShareMembers(members: { name: string; phone: string | null }[]): number {
+  let added = 0
+  update((data) => {
+    const existingPhones = new Set(data.contacts.map((c) => c.phone))
+    const newContacts: Contact[] = []
+    for (const m of members) {
+      if (!m.phone || existingPhones.has(m.phone)) continue
+      existingPhones.add(m.phone)
+      newContacts.push({ id: newId(), name: m.name, phone: m.phone, isMe: false })
+      added++
+    }
+    if (newContacts.length === 0) return data
+    return { ...data, contacts: [...data.contacts, ...newContacts] }
+  })
+  return added
+}
+
 // ---------- Events ----------
 
 export function createEvent(input: {
