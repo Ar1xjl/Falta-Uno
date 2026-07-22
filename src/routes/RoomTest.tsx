@@ -42,7 +42,8 @@ export default function RoomTest() {
 
   useEffect(() => {
     if (!supabase) return
-    supabase.auth.getUser().then(async ({ data }) => {
+    const db = supabase
+    db.auth.getUser().then(async ({ data }) => {
       if (data.user) {
         setUserId(data.user.id)
         return
@@ -52,7 +53,7 @@ export default function RoomTest() {
       setSigningIn(true)
       try {
         await signInWithDeviceKey()
-        const { data: after } = await supabase.auth.getUser()
+        const { data: after } = await db.auth.getUser()
         setUserId(after.user?.id ?? null)
       } catch (e) {
         setError(toErrorMessage(e))
