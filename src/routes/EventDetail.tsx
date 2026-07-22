@@ -184,12 +184,12 @@ export default function EventDetail() {
             </button>
             <button
               onClick={() => {
-                const name = prompt('Nombre del template', `${sport.name} ${event.club}`)
+                const name = prompt('Nombre del grupo', `${sport.name} ${event.club}`)
                 if (name) saveEventAsTemplate(event.id, name)
               }}
               className="btn btn-ghost"
             >
-              Guardar como template
+              Guardar como grupo
             </button>
             <button
               onClick={() => {

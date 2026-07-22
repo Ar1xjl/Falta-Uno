@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom'
 const LINKS = [
   { to: '/events', emoji: '📅', label: 'Eventos' },
   { to: '/contacts', emoji: '👥', label: 'Contactos' },
-  { to: '/templates', emoji: '🔁', label: 'Templates' },
+  { to: '/grupos', emoji: '🔁', label: 'Grupos' },
   { to: '/expenses', emoji: '💰', label: 'Gastos' },
   { to: '/history', emoji: '🗂️', label: 'Historial' },
   { to: '/settings', emoji: '⚙️', label: 'Ajustes' },

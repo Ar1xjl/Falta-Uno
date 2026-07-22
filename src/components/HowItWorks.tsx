@@ -32,7 +32,7 @@ export default function HowItWorks() {
                 mano o importarlos de una vez desde un archivo.
               </li>
               <li>
-                <strong className="text-ink">Templates</strong> — partidos que se repiten (ej. "Padel jueves"). Creá
+                <strong className="text-ink">Grupos</strong> — partidos que se repiten (ej. "Padel jueves"). Creá
                 el próximo en un toque, incluso de forma automática cada semana.
               </li>
               <li>

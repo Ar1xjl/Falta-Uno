@@ -56,7 +56,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/events" element={<Events />} />
               <Route path="/contacts" element={<Contacts />} />
-              <Route path="/templates" element={<Templates />} />
+              <Route path="/grupos" element={<Templates />} />
               <Route path="/history" element={<History />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/expenses" element={<Expenses />} />

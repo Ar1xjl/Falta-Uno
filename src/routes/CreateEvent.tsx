@@ -26,7 +26,7 @@ export default function CreateEvent() {
         {data.eventTemplates.length > 0 && (
           <div className="pill-group">
             <button onClick={() => setMode('template')} className={`pill-btn ${mode === 'template' ? 'active' : ''}`}>
-              Desde template
+              Desde grupo
             </button>
             <button onClick={() => setMode('scratch')} className={`pill-btn ${mode === 'scratch' ? 'active' : ''}`}>
               Desde cero

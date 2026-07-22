@@ -25,7 +25,7 @@ export default function Templates() {
   return (
     <div className="flex flex-col">
       <PageHeader
-        title="Templates"
+        title="Grupos"
         trailing={
           <button onClick={() => setEditing('new')} className="btn btn-primary">
             + Nuevo
@@ -35,7 +35,7 @@ export default function Templates() {
 
       <div className="flex flex-col gap-2 p-4">
         {data.eventTemplates.length === 0 ? (
-          <p className="empty-state">Todavía no guardaste ningún template.</p>
+          <p className="empty-state">Todavía no guardaste ningún grupo.</p>
         ) : (
           data.eventTemplates.map((t) => (
             <div key={t.id} className="card">
@@ -53,7 +53,7 @@ export default function Templates() {
                   </button>
                   <button
                     onClick={() => {
-                      if (confirm(`¿Eliminar el template "${t.name}"?`)) deleteEventTemplate(t.id)
+                      if (confirm(`¿Eliminar el grupo "${t.name}"?`)) deleteEventTemplate(t.id)
                     }}
                     className="text-danger font-semibold"
                   >
@@ -195,7 +195,7 @@ function TemplateForm({ template, onDone }: { template?: EventTemplate; onDone: 
   return (
     <div className="flex flex-col">
       <PageHeader
-        title={template ? 'Editar template' : 'Nuevo template'}
+        title={template ? 'Editar grupo' : 'Nuevo grupo'}
         leading={
           <button type="button" onClick={onDone} className="text-muted text-sm">
             ← Volver

@@ -8,7 +8,7 @@ const TABS = [
   { to: '/', label: 'Inicio', end: true },
   { to: '/events', label: 'Eventos' },
   { to: '/contacts', label: 'Contactos' },
-  { to: '/templates', label: 'Templates' },
+  { to: '/grupos', label: 'Grupos' },
   { to: '/history', label: 'Historial' },
   { to: '/settings', label: 'Ajustes' },
 ]
