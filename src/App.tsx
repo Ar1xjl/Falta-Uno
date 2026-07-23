@@ -1,8 +1,10 @@
 import { Route, Routes, useLocation, useSearchParams } from 'react-router-dom'
 import { useAppData } from './data/store'
 import { getMeContact } from './data/selectors'
+import { useAppDataSync } from './lib/appDataSync'
 import Onboarding from './components/Onboarding'
 import JoinInvite from './routes/JoinInvite'
+import LinkDevice from './routes/LinkDevice'
 import Layout from './components/Layout'
 import SidePanel, { SPORT_MOCKUPS } from './components/SidePanel'
 import Home from './routes/Home'
@@ -29,6 +31,11 @@ function App() {
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const inviteId = searchParams.get('invite')
+  const linkCode = searchParams.get('link')
+
+  // El propio LinkDevice hace su sign-in + traída de datos con el código de vinculación —
+  // no correr el login/pull silencioso de siempre en paralelo mientras eso pasa.
+  useAppDataSync(data, Boolean(linkCode))
 
   // Rutas de desarrollo para probar la sincronización con Supabase sin pasar por el onboarding local.
   const DevRoute = DEV_ROUTES[location.pathname]
@@ -46,7 +53,9 @@ function App() {
     <div className="app-shell">
       <SidePanel items={[SPORT_MOCKUPS[0], SPORT_MOCKUPS[2]]} />
       <div className="phone-frame">
-        {!me ? (
+        {linkCode ? (
+          <LinkDevice key={linkCode} code={linkCode} />
+        ) : !me ? (
           <Onboarding />
         ) : inviteId ? (
           <JoinInvite key={inviteId} shareId={inviteId} />

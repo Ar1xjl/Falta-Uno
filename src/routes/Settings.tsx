@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useAppData } from '../data/store'
+import { getData, replaceData, useAppData } from '../data/store'
 import {
   addCustomSport,
   addMessageTemplate,
@@ -9,7 +9,11 @@ import {
   updateMessageTemplate,
 } from '../data/actions'
 import type { MessageTemplate, SportConfig } from '../types'
-import { DEFAULT_MESSAGE_TEMPLATE_TEXT } from '../lib/whatsapp'
+import { DEFAULT_MESSAGE_TEMPLATE_TEXT, buildWaMeShareLink } from '../lib/whatsapp'
+import { pullAppData, pushAppData } from '../lib/appDataSync'
+import { buildDeviceLinkUrl, createDeviceLinkCode } from '../lib/deviceLink'
+import { supabaseEnabled } from '../lib/supabase'
+import { toErrorMessage } from '../lib/errors'
 import PageHeader from '../components/PageHeader'
 import HowItWorks from '../components/HowItWorks'
 
@@ -57,9 +61,87 @@ export default function Settings() {
           <MessageTemplateList templates={data.messageTemplates} />
         </section>
 
+        {supabaseEnabled && <DeviceLinkSection />}
+
         <HowItWorks />
       </div>
     </div>
+  )
+}
+
+function DeviceLinkSection() {
+  const [code, setCode] = useState<string | null>(null)
+  const [generating, setGenerating] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+
+  async function handleGenerate() {
+    setGenerating(true)
+    setError('')
+    setCode(null)
+    try {
+      setCode(await createDeviceLinkCode())
+    } catch (e) {
+      setError(toErrorMessage(e))
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  async function handleSyncNow() {
+    setSyncing(true)
+    setError('')
+    setMessage('')
+    try {
+      await pushAppData(getData())
+      const remote = await pullAppData()
+      if (remote) replaceData(remote)
+      setMessage('Sincronizado.')
+    } catch (e) {
+      setError(toErrorMessage(e))
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  return (
+    <section className="card flex flex-col gap-2">
+      <h2 className="card-title mb-0">Dispositivos</h2>
+      <p className="hint">
+        Vinculá un celular o computadora nueva a esta misma cuenta — sus contactos, eventos y gastos van a
+        quedar iguales que acá.
+      </p>
+
+      {!code ? (
+        <button onClick={handleGenerate} disabled={generating} className="btn btn-ghost">
+          {generating ? 'Generando…' : 'Vincular un dispositivo nuevo'}
+        </button>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-ink">
+            Código: <span className="font-semibold">{code}</span> · válido 10 minutos
+          </p>
+          <a
+            href={buildWaMeShareLink(
+              `Vincular mi FaltaUno!! a este dispositivo: ${buildDeviceLinkUrl(code)}\n\nAbrilo desde el celular o la compu que querés agregar.`,
+            )}
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn-primary text-center"
+          >
+            Enviar por WhatsApp
+          </a>
+        </div>
+      )}
+
+      <button onClick={handleSyncNow} disabled={syncing} className="text-brand text-sm font-semibold">
+        {syncing ? 'Sincronizando…' : 'Sincronizar ahora'}
+      </button>
+
+      {message && <p className="hint">{message}</p>}
+      {error && <p className="text-danger text-sm">{error}</p>}
+    </section>
   )
 }
 

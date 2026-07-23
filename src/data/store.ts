@@ -16,6 +16,13 @@ export function update(mutator: (data: AppData) => AppData): void {
   notify()
 }
 
+/** Overwrites the entire local dataset (e.g. after pulling from Supabase on a linked device) — same effect as `update`, but replaces wholesale instead of mutating. */
+export function replaceData(newData: AppData): void {
+  data = newData
+  saveData(data)
+  notify()
+}
+
 function subscribe(listener: () => void): () => void {
   listeners.add(listener)
   return () => listeners.delete(listener)

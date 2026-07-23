@@ -15,16 +15,21 @@ function functionsUrl(path: string): string {
 // usuario que acaba de crear el primero. Un solo vuelo en curso evita esa carrera.
 let inFlight: Promise<void> | null = null
 
-export function signInWithDeviceKey(): Promise<void> {
+/**
+ * `linkCode` (opcional) viene de vincular un dispositivo nuevo a una identidad ya autenticada
+ * en otro dispositivo (ver deviceLink.ts) — si esta pubkey todavía no existe en el servidor,
+ * se ata a esa identidad en vez de crear un usuario nuevo.
+ */
+export function signInWithDeviceKey(linkCode?: string): Promise<void> {
   if (!inFlight) {
-    inFlight = doSignIn().finally(() => {
+    inFlight = doSignIn(linkCode).finally(() => {
       inFlight = null
     })
   }
   return inFlight
 }
 
-async function doSignIn(): Promise<void> {
+async function doSignIn(linkCode?: string): Promise<void> {
   if (!supabase) throw new Error('Supabase no está configurado (faltan las env vars).')
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
 
@@ -43,7 +48,7 @@ async function doSignIn(): Promise<void> {
   const verifyRes = await fetch(functionsUrl('pubkey-auth'), {
     method: 'POST',
     headers: { Authorization: `Bearer ${anonKey}`, apikey: anonKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ publicKeyJwk, signature, nonce }),
+    body: JSON.stringify({ publicKeyJwk, signature, nonce, linkCode }),
   })
   const verifyBody = await verifyRes.json()
   if (!verifyRes.ok) throw new Error(verifyBody.error ?? `Falló la verificación (${verifyRes.status}).`)

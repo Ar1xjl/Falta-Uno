@@ -19,7 +19,7 @@ Caso de uso complementario (Fase 5/6):
 
 ## 2. Alcance del MVP
 
-**Local-first, sin backend, sin cuentas, sin login.** Todo vive en el dispositivo (localStorage / IndexedDB según implementación).
+**Local-first, sin cuentas, sin login tradicional.** Todo vive en el dispositivo (localStorage), y la app funciona 100% offline sin backend. Hay una capa opcional de Supabase (identidad por keypair de dispositivo, invitar a un evento por link, y sincronizar los mismos datos entre tus propios dispositivos) que se activa sola si las env vars están configuradas — ver sección 12 — pero nunca es un requisito para usar la app.
 
 ### Explícitamente FUERA del MVP (para no perder tiempo implementando)
 - Tags / categorías de contactos
@@ -314,3 +314,19 @@ interface Settlement {
 - **Revisado — badge de alertas**: la pestaña Inicio muestra un badge rojo con la cantidad de eventos `upcoming` que tienen una ronda activa con invitaciones todavía sin respuesta (mismo criterio que la sección "Rondas esperando respuesta" de Home). No es "personalizable" en el sentido de preferencias configurables por el usuario — simplemente refleja el estado real de sus datos. Vacantes abiertas por sí solas no generan badge (son el estado normal hasta completar el cupo); solo cuenta lo que requiere una acción concreta (revisar respuestas).
 - **Fase 5 — gastos y balances, alcance cerrado**: split siempre parejo (sin montos custom por persona); sin integración real de Mercado Pago ni ejecución de pagos — solo tracking, cálculo de balance y sugerencia de "quién le paga a quién" (algoritmo greedy tipo Splitwise). El alias/CVU/CBU es un campo de texto libre sin validar, y nunca se muestra en "Tu perfil" (Ajustes) — solo por contacto, pensando en que el día de mañana cada jugador tenga su propia instancia de la app con su propio alias. "Gastos" vive en la grilla de accesos rápidos de Home, no en el nav de arriba (ya con 6 pestañas).
 - **Fase 6 — gastos multi-evento y balance por serie, alcance cerrado**: el balance ya NO es global por contacto — está scopeado por grupo (serie recurrente o evento suelto, regla 11), y nunca se resetea automáticamente por período (los saldos pendientes se arrastran hasta que se registre un Settlement manual, regla 13). Un abono que "alcanza" a N eventos prorratea automáticamente según el roster real de cada evento cubierto, no según el grupo fijo del día que se cargó el gasto — así un reemplazo a mitad de mes solo paga lo que jugó. Carga itemizada: un solo "Agregar gasto" puede cargar varias líneas con pagadores distintos en un solo envío.
+
+---
+
+## 12. Identidad, invitaciones y sincronización entre dispositivos (opcional, Supabase)
+
+Capa aparte del MVP local, activada solo si `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` están configuradas (si no, todo lo de esta sección queda inerte y la app funciona exactamente como si no existiera).
+
+**Identidad — device-key auth (sin Twilio/SMS/email)**: cada dispositivo genera su propio par de claves ECDSA P-256 (`src/lib/deviceKey.ts`), con la clave privada `extractable: false` (nunca es legible ni siquiera por XSS — queda como `CryptoKey` opaco en IndexedDB). El login (`src/lib/pubkeyAuth.ts` + Edge Function `pubkey-auth`) es firmar un desafío del servidor; si la pubkey nunca se vio, se crea una identidad nueva sola, sin ningún paso de alta visible para el usuario.
+
+**Invitar a un evento por link**: "Compartir por link" en Event Detail crea una fila en `event_shares` (Supabase) con los datos reales del evento; quien abre `?invite=<id>` (`JoinInvite.tsx`) ve una previsualización (quién juega) antes de sumarse, y al aceptar se intercambian contactos automáticamente en ambos sentidos (`event_share_members`, `mergeContactsFromShareMembers`).
+
+**Vincular dispositivos** (Ajustes → "Dispositivos"): un dispositivo ya autenticado genera un código corto de un solo uso (`create_device_link_code`, 10 min de validez) y lo manda por WhatsApp (mismo patrón `wa.me` que el resto de la app). El dispositivo nuevo abre `?link=<code>` (`LinkDevice.tsx`, corre *antes* del onboarding local — no tiene sentido crear un "Tu perfil" solo para pisarlo después) y, al confirmar, esa pubkey se ata a la misma identidad en vez de crear una nueva (`pubkey-auth` acepta un `linkCode` opcional).
+
+**Sincronizar los mismos datos entre dispositivos propios**: vincular identidades no alcanza por sí solo — sin esto, un dispositivo nuevo queda vacío. `user_app_data` guarda el `AppData` completo (contactos, eventos, rounds, invitations, templates, gastos, settlements) como un solo blob JSON por `user_id`. Push: cada cambio local, con un debounce corto, mientras haya sesión (`useAppDataSync` en `src/lib/appDataSync.ts`, llamado desde `App.tsx`). Pull: una vez al abrir la app, y siempre al terminar de vincular un dispositivo (reemplaza los datos locales de ese dispositivo por los del otro, con confirmación explícita porque es destructivo). **Decisión explícita: "último que escribe gana" a nivel de todo el documento, sin merge campo por campo** — dos dispositivos editando *al mismo tiempo* pueden pisarse un cambio entre sí; para el patrón de uso real de esta app (organizás desde donde estés en cada momento, no en paralelo) es un riesgo aceptado a cambio de evitar construir un motor de merge real.
+
+**Notas de implementación**: sin CLI de Supabase vinculada — el SQL corre a mano en el SQL Editor del dashboard, y la Edge Function se pega directo en el editor de Functions del dashboard (no `supabase functions deploy`). Archivos relevantes: `supabase/sql/*.sql`, `supabase/functions/pubkey-auth/index.ts`, `src/lib/{deviceKey,pubkeyAuth,deviceLink,appDataSync,eventShares,eventShareMembers,eventShareExpenses,eventShareSettlements}.ts`.
