@@ -38,7 +38,7 @@ export default function Home() {
           </button>
         </div>
         {nextEvent ? (
-          <button onClick={() => navigate('/events')} className="flex flex-col gap-1 text-left">
+          <button onClick={() => navigate(`/events/${nextEvent.id}`)} className="flex flex-col gap-1 text-left">
             <div className="flex items-center justify-between">
               <span className="font-semibold text-ink">{getSportConfig(nextEvent.sportId, data.customSports).name}</span>
               {getVacancies(nextEvent) > 0 ? (

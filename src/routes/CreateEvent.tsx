@@ -4,6 +4,7 @@ import { useAppData } from '../data/store'
 import { createEvent, createEventFromTemplate } from '../data/actions'
 import { getAllSports } from '../data/sports'
 import PageHeader from '../components/PageHeader'
+import MembersEditor from '../components/MembersEditor'
 
 export default function CreateEvent() {
   const data = useAppData()
@@ -91,6 +92,7 @@ function FromScratchForm() {
   const navigate = useNavigate()
   const sports = getAllSports(data.customSports)
   const [sportId, setSportId] = useState('')
+  const selectedSport = sports.find((s) => s.id === sportId)
   const [requiredPlayersInput, setRequiredPlayersInput] = useState('4')
   const requiredPlayers = Math.max(1, Number(requiredPlayersInput) || 1)
   const [club, setClub] = useState('')
@@ -170,14 +172,13 @@ function FromScratchForm() {
         {others.length === 0 ? (
           <p className="hint">Cargá contactos primero en la pestaña Contactos.</p>
         ) : (
-          <div className="flex flex-col gap-1">
-            {others.map((c) => (
-              <label key={c.id} className="list-row">
-                <input type="checkbox" checked={confirmedIds.includes(c.id)} onChange={() => toggleContact(c.id)} />
-                <span className="text-sm text-ink">{c.name}</span>
-              </label>
-            ))}
-          </div>
+          <MembersEditor
+            selectedIds={confirmedIds}
+            allContacts={others}
+            onToggle={toggleContact}
+            sportCategory={selectedSport?.category}
+            sportName={selectedSport?.name}
+          />
         )}
       </div>
 

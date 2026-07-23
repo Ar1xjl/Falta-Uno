@@ -10,6 +10,7 @@ import {
 import { getAllSports } from '../data/sports'
 import type { EventTemplate, EventTemplateRound } from '../types'
 import PageHeader from '../components/PageHeader'
+import MembersEditor from '../components/MembersEditor'
 
 const WEEKDAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
@@ -131,6 +132,7 @@ function TemplateForm({ template, onDone }: { template?: EventTemplate; onDone: 
   const sports = getAllSports(data.customSports)
   const [name, setName] = useState(template?.name ?? '')
   const [sportId, setSportId] = useState(template?.sportId ?? '')
+  const selectedSport = sports.find((s) => s.id === sportId)
   const [requiredPlayersInput, setRequiredPlayersInput] = useState(String(template?.requiredPlayers ?? 4))
   const requiredPlayers = Math.max(1, Number(requiredPlayersInput) || 1)
   const [club, setClub] = useState(template?.club ?? '')
@@ -264,14 +266,13 @@ function TemplateForm({ template, onDone }: { template?: EventTemplate; onDone: 
 
         <div>
           <p className="section-label mb-2">Núcleo fijo (además de vos)</p>
-          <div className="flex flex-col gap-1">
-            {others.map((c) => (
-              <label key={c.id} className="list-row">
-                <input type="checkbox" checked={confirmedIds.includes(c.id)} onChange={() => toggleConfirmed(c.id)} />
-                <span className="text-sm text-ink">{c.name}</span>
-              </label>
-            ))}
-          </div>
+          <MembersEditor
+            selectedIds={confirmedIds}
+            allContacts={others}
+            onToggle={toggleConfirmed}
+            sportCategory={selectedSport?.category}
+            sportName={selectedSport?.name}
+          />
         </div>
 
         <div>
@@ -290,20 +291,14 @@ function TemplateForm({ template, onDone }: { template?: EventTemplate; onDone: 
                     Quitar
                   </button>
                 </div>
-                <div className="flex flex-col gap-1">
-                  {others
-                    .filter((c) => !confirmedIds.includes(c.id))
-                    .map((c) => (
-                      <label key={c.id} className="list-row">
-                        <input
-                          type="checkbox"
-                          checked={r.contactIds.includes(c.id)}
-                          onChange={() => toggleRoundContact(r.order, c.id)}
-                        />
-                        <span className="text-sm text-ink">{c.name}</span>
-                      </label>
-                    ))}
-                </div>
+                <MembersEditor
+                  selectedIds={r.contactIds}
+                  allContacts={others.filter((c) => !confirmedIds.includes(c.id))}
+                  onToggle={(id) => toggleRoundContact(r.order, id)}
+                  sportCategory={selectedSport?.category}
+                  sportName={selectedSport?.name}
+                  emptyLabel="Nadie invitado en esta ronda todavía."
+                />
                 {data.messageTemplates.length > 0 && (
                   <select
                     className="mt-2"
